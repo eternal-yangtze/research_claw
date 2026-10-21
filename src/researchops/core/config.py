@@ -8,10 +8,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
 
 def load_project_env(*, override: bool = False) -> Path | None:
-    """Load the project .env without logging or returning secret values.
-
-    Adapted from TaleClaw's MIT-licensed runtime/env_loader.py.
-    """
+    """Load the project .env without logging or returning secret values."""
 
     candidates = (Path.cwd() / ".env", PROJECT_ROOT / ".env")
     for env_path in dict.fromkeys(path.resolve() for path in candidates):

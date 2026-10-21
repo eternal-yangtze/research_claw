@@ -1,4 +1,4 @@
-"""Evidence-grounded, versioned handoff to the TaleClaw-derived coding application."""
+"""Evidence-grounded, versioned handoff to the research coding application."""
 from __future__ import annotations
 
 import json

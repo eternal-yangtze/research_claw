@@ -1,1 +1,1 @@
-"""Selected TaleClaw MIT modules; see bundled LICENSE and THIRD_PARTY_NOTICES."""
+"""Third-party MIT helper modules; retain the bundled copyright license."""

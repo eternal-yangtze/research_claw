@@ -224,7 +224,6 @@ def main():
               "schema_version": "researchops-capability-audit-v1",
               "script_sha256": file_hash(Path(__file__)),
               "reference_metrics": {
-                  "TaleClaw/evaluation/metrics.py": ["verifier_pass_rate", "trace_completeness_rate"],
                   "AERS/eval-harness/README.md": "machine-verifiable artifacts; semantic manual checks remain ungraded",
                   "paper-qa-main/README.md#reproduction": "inspiration for evidence QA evaluation only; these probes do not reproduce LitQA",
                   "project/silver_evaluation.py": ["nDCG@10", "nDCG@30", "shortlist precision/recall"],

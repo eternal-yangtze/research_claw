@@ -1,224 +1,327 @@
-# ResearchOps Agent
+# 简介
 
-ResearchOps 是面向科研工作的 Python 智能体与运行框架。它把自然语言 IDEA、文献获取、全文解析、知识库检索、证据整理、研究方案生成和独立评审连接起来，形成可恢复、可追溯、有预算约束的工作链条。
+ResearchOps 是一个 Python Agent runtime：由模型自主选择工具，通过按需发现、加载和执行 Skill 调用领域能力，由宿主控制工具权限、调用预算、失败处理与执行记录。科研是它的验证场景，覆盖文献获取、证据检索、研究方案编译和代码沙箱验证；CLI 与独立 Web 服务复用核心工具循环。
 
-目前集中验证的领域是**小数据量图像分类中的 Vision Transformer 参数高效微调**，覆盖 LoRA、视觉提示、适配器及其组合。文献理解与检索还支持机器学习、时间序列及知识图谱方向；通过连接器、数据集注册表和实验契约可以继续扩展任务范围。
+核心实现位于 [harness/runtime.py](src/researchops/harness/runtime.py)、[Skill runtime](src/researchops/harness/skills/runtime.py) 与 [应用装配](src/researchops/application/workflow.py)。Coding 使用独立的应用循环，复用工具执行、权限、预算准入和 trace 组件。
 
-主要评测终点是 **coding 之前的研究方案与冻结实验规格**。本页结果来自实际运行保存的报告，以 LLM 银标作为临时评测参考；每组表格注明样本及对照口径。时间、token、工程测试与科研质量分别统计。
+# 流程图
 
-## 核心能力
+## 架构分层图
 
-- **Agent Harness**：模型工具循环、输入 schema、工具权限、路径边界、token 账本、JSONL trace、失败恢复和质量 Gate。
-- **按需加载 Skills**：先展示技能元信息，再选择、加载和执行；文献获取、文档入库、检索取证、研究规划共享已有工具与调度器。
-- **多源文献获取**：arXiv、OpenAlex、OpenReview、DBLP、Crossref、ACL Anthology、CVF Open Access；统一论文身份、跨源 provenance、公开 PDF 与 arXiv 源码包。
-- **论文处理**：Docling OCR/公式/表格增强、PyMuPDF 文本回退、段落/公式/表格独立节点、页码和坐标、同版本源码核验与向量符号诊断。
-- **知识与上下文管理**：SQLite 持久化，L0–L3 分层压缩，按输入、模型与实现 hash 缓存，按需读取全文和证据，独立冻结规划快照。
-- **CPU 神经 RAG**：BM25、神经向量、交叉编码器、MMR、多查询与新旧候选融合；新增段落增量编码，证据卡逐字核对。
-- **研究规划闭环**：编译方案、机械检查、独立调用评审、反馈修订、最终确认；明确验证/测试隔离、多种子、公平预算与主要指标。
-- **可扩展评测**：IDEA 集、检索相关性参考、扩库快照、生成对照、引用核验、冻结协议和离线审计；已有 coding 工程验证保留为独立模块。
+```mermaid
+flowchart TB
+    subgraph Entry[入口]
+        CLI[CLI · researchops.py]
+        UI[独立前端 · Vite / Nginx]
+        API[独立后端 · FastAPI / WebStore]
+        UI -->|HTTP / SSE| API
+    end
 
-## 目录结构
+    subgraph Runtime[应用装配与运行约束]
+        APP[ResearchOpsApp]
+        LOOP[ReasoningLoop · Session.messages]
+        BUDGET[BudgetedModel · 调用准入与账本]
+        MODEL[ModelPort · Chat Completions]
+        EXEC[ToolExecutor · ToolPolicy / 参数校验]
+        SKILL[SkillRuntime / SkillLoader]
+        CODING[CodingApplication · checkpoint / 验证反馈]
+        APP --> LOOP
+        LOOP --> BUDGET --> MODEL
+        MODEL -->|文本 / tool calls| LOOP
+        LOOP --> EXEC
+        EXEC -->|发现 / 加载 / 调用| SKILL
+        SKILL -->|执行宿主绑定工具| EXEC
+        APP -->|Coding 入口| CODING
+    end
 
-```text
-researchops.py       # CLI 入口
-src/researchops/
-  application/       # 应用入口、工具绑定、研究规划
-  core/              # 数据模型、配置、数据库
-  harness/           # Agent、Skills、上下文、权限、预算和 trace
-  papers/            # 文献连接器、解析、分析、公式核验
-  knowledge/         # 分层压缩、神经检索、证据组织
-  pipelines/         # 获取 DAG 与批量研究
-  evaluation/        # 银标、参考接口、评审和 Gate
-  experiments/       # 数据集准备、规格和调度
-  coding/            # 独立的代码生成与沙箱验证
-skills/              # 四个项目内 Skill 的正文与绑定元信息
-config/              # IDEA 集、模型和评测配置
-scripts/             # 评测、审计、维护工具
-tests/               # 回归测试与小型测试夹具
-evaluation/
-  protocols/         # 冻结评测协议（实验资源）
-  results/           # 可公开的实测指标与历史指标目录
-papers/              # 本地 PDF、论文源码包，Git 忽略
-datasets/            # 本地数据集，Git 忽略
-knowledge_base/      # 数据库、索引、研究档案和原始运行证据，Git 忽略
-DEVELOPMENT.md       # 开发交接、问题、接口和后续路线
+    subgraph Domain[领域组件]
+        PAPERS[文献连接器 / PDF 解析 / 分层压缩]
+        RAG[HybridRetriever / EvidenceRetriever / FusionRetriever]
+        STUDY[研究方案编译 / 机械 Gate / 独立评审]
+        SANDBOX[CodingSandbox · Docker / 外部 verifier]
+    end
+
+    subgraph Persistence[持久化与审计]
+        DB[SQLite · 会话 / 文献 / 证据 / 向量缓存]
+        FILES[JSON 工件 / 调用账本 / Coding checkpoint]
+        TRACE[TraceStore · JSONL]
+    end
+
+    CLI --> APP
+    API --> APP
+    API --> DB
+    EXEC --> PAPERS
+    EXEC --> RAG
+    EXEC --> STUDY
+    CODING --> SANDBOX
+    PAPERS --> DB
+    RAG --> DB
+    STUDY --> FILES
+    SANDBOX --> FILES
+    CODING --> FILES
+    BUDGET --> FILES
+    LOOP --> TRACE
+    EXEC --> TRACE
 ```
 
-## 快速开始
+## 一次请求时序图
 
-Python 3.11+，在项目根目录执行：
+CLI 的 `agent`、默认 `research` 命令采用 Skill 入口；Web 采用项目知识问答入口。二者共享 `ReasoningLoop`，由各自的 adapter 指定可见工具和会话来源。
+
+```mermaid
+sequenceDiagram
+    actor U as 用户
+    participant E as CLI / FastAPI
+    participant S as SQLite / JSON / JSONL
+    participant L as ReasoningLoop
+    participant B as BudgetedModel
+    participant M as 模型
+    participant X as ToolExecutor
+    participant K as SkillRuntime
+    participant D as 领域 handler
+
+    U->>E: 提交消息
+    alt Web 请求
+        E->>S: 按 owner / project / session 读取历史
+        E->>S: 事务创建 running 记录，检查同会话并发
+        E->>L: Session 历史 + 当前消息 + 知识工具白名单
+    else CLI Skill 请求
+        E->>K: 读取受权限约束的 Skill 元信息目录
+        E->>L: 新 Session + 元信息 + Skill 控制工具
+    end
+
+    L->>L: 追加消息，按 Agent 权限及入口暴露集合生成 schema
+    loop 在 reasoning steps 与工具调用上限内
+        L->>B: complete(messages, tools, max_tokens)
+        alt 调用预算不足
+            break 停止本次运行
+                B-->>L: BudgetAdmissionError
+                L-->>E: 异常交给入口保存失败记录
+            end
+        else 预算准入
+            B->>S: 先保存预留账本与请求
+            B->>M: 发起模型调用
+            M-->>B: 文本 / tool calls / usage
+            B->>S: 保存响应并结算用量
+            B-->>L: ModelTurn
+            alt 模型请求工具
+                L->>L: 检查工具调用上限、重复调用及入口暴露范围
+                L->>X: execute(call, agent, session)
+                X->>S: tool.call.started
+                X->>X: 重新检查工具权限，校验输入参数
+                alt 权限拒绝或参数错误
+                    X->>S: denied / failed 事件
+                    X-->>L: 结构化 ToolResult
+                else 获准执行
+                    alt search_skills / load_skill
+                        X->>K: 发现元信息 / 加载正文与 hash
+                        K->>S: Skill 发现 / 加载事件
+                        K-->>X: 元信息 / 正文 / schema
+                    else invoke_skill
+                        X->>K: 名称 + 加载 hash + 参数
+                        K->>K: 重读 Skill，核对本会话加载 hash
+                        alt hash 不符
+                            K-->>X: PermissionError
+                        else hash 一致
+                            K->>X: 绑定工具 + 实际参数
+                            X->>D: 通过权限和参数检查后执行
+                            D-->>X: 领域结果
+                            X-->>K: ToolResult
+                            K->>S: 保存调用工件与 Skill 事件
+                            K-->>X: 调用记录 / 失败异常
+                        end
+                    else Web 知识工具
+                        X->>D: 搜索证据 / 回读 chunk / 提取式回答
+                        D-->>X: 领域结果
+                    end
+                    X->>S: tool.call.completed / failed
+                    X-->>L: ToolResult
+                end
+                L->>L: 限制结果文本长度，作为 tool message 回灌
+            else 模型返回非空最终文本
+                break 正常结束
+                    L->>S: run.completed
+                    L-->>E: answer / run_id / 调用信息
+                end
+            end
+        end
+    end
+    E->>S: Web 保存会话与终态；CLI 保存结果或失败工件
+    E-->>U: CLI 结果 / Web SSE 终态事件
+```
+
+# 工作流讲解
+
+1. 用户提交消息后，入口确定本次请求的会话范围。Web 从登录身份定位项目与会话，CLI 按工作区接收任务。
+2. 入口准备本次会话的上下文：Web 读取历史消息、创建运行记录并检查同会话并发，CLI 创建新 Session 并读取受权限约束的 Skill 元信息。
+3. ReasoningLoop 将当前消息追加到会话，再按 Agent 权限、入口允许集合和工具自身约束生成工具 schema，确定模型本轮可选的能力。
+4. 宿主在预算准入后，将会话消息与工具 schema 交给模型。模型根据任务和已有观察决定下一步，返回文本或发起一个或多个工具调用。
+5. 模型请求工具时，ReasoningLoop 先检查调用次数、重复调用和入口暴露范围，ToolExecutor 再检查权限与参数。调用 invoke_skill 时，SkillRuntime 还会核对本次提交、会话加载记录与当前文件的 hash。
+6. ToolExecutor 将通过校验的调用交给对应 handler 执行，Web 知识工具负责检索、原文回读与证据回答。Skill 入口中，模型按需用 search_skills 查找元信息、用 load_skill 读取正文，再通过 invoke_skill 执行宿主绑定工具。
+7. ReasoningLoop 将工具结果转为 tool message，限制长度后追加到会话。权限拒绝、参数错误与 handler 异常同样作为结构化观察返回，模型可据此修正后续调用。
+8. 模型带着新观察进入下一轮决策，可以继续调用工具、选择其他 Skill、修正参数，或形成最终回答。
+9. 模型返回非空文本且没有工具调用时，ReasoningLoop 正常结束。步数上限、工具调用上限、重复调用、空响应、预算失败或模型异常会终止运行。
+10. 入口保存终态并返回结果：Web 持久化会话与运行状态，通过 SSE 返回终态事件；CLI 保存结果或失败工件后交给用户。
+
+# 说明
+
+## 入口先确定会话和能力范围
+
+Web 从 JWT 中取得 `owner`，按 `owner + project + session` 查询历史，再通过 SQLite 事务创建 run。同一会话存在活动 run 时返回冲突，避免两条生成链同时改写历史。CLI Skill 入口创建新的 `Session`，把可用 Skill 的名称和描述放入初始上下文。
+
+工具可见性由宿主确定。`ToolRegistry.visible()` 先应用 Agent 的允许列表、拒绝列表和工具自身的 `allowed_agents`；Skill 入口进一步只暴露 `search_skills`、`load_skill`、`invoke_skill`。Web 则只暴露 `search_knowledge`、`get_chunk`、`answer_with_evidence`。模型因此只在当前入口允许的能力范围内决策。
+
+## 模型决定下一步，宿主保留执行权
+
+`ReasoningLoop` 保存消息、发送工具 schema，并处理模型返回的文本或 tool calls。模型可以选择先发现 Skill、读取操作说明，再执行实际任务；宿主负责调用 handler 和回传观察。Skill 正文只能提供操作说明，实际执行目标来自代码中的固定绑定。
+
+`ToolExecutor` 在进入 handler 前再次调用 `ToolPolicy.authorize()`，随后检查必填字段、额外参数和声明的基础类型。Skill 调用还要通过加载 hash 校验；文件入口检查解析后的实际路径；研究规划 handler 再检查语料、数据和科学任务参数。
+
+这些检查作用不同：可见性减少无效选择，执行授权防止越权调用，hash 校验约束 Skill 版本，handler 检查保护具体资源。工具参数来自模型输出，必须经过执行边界重新验证。
+
+## 工具观察回灌，运行状态如实记录
+
+权限拒绝返回 `denied`；参数或 handler 异常转换为带错误类型和消息的 `ToolResult`。结果写回 `Session.messages`，模型可以据此修正输入或解释阻塞原因。Skill 的真实调用结果同时写入独立 JSON 工件，失败记录保留实际参数、状态和错误。
+
+工具返回给模型的文本受 `max_output_chars` 限制，超长内容转换为截断预览。trace 记录调用开始、完成、拒绝或失败；完整领域结果由相应领域工件承载，模型请求与响应由调用账本目录保存。
+
+## 结束条件由运行代码决定
+
+没有 tool calls 且返回非空文本时，通用 loop 结束。达到 reasoning steps 上限、超过工具调用上限、出现相同工具和参数的重复调用、模型返回的文本与 tool calls 同时为空，都会终止运行。模型调用异常向入口传播，预算准入失败则阻止下一次付费请求。
+
+研究方案在编译、机械检查与独立评审满足交付条件后标记为 `ready_for_coding`；其余结果保留 `blocked_before_coding` 及修订记录。Coding 的完成状态由外部 verifier 和源码指纹共同约束。
+
+# 关键设计决策
+
+## 1. Skill 分成发现、加载和执行
+
+[SkillLoader](src/researchops/harness/skills/loader.py) 发现阶段只读 YAML frontmatter 和绑定清单；`load_skill` 返回选定 Skill 的正文、版本、输入 schema 和 SHA-256；`invoke_skill` 要求提交名称、加载 hash 和参数。四个宿主绑定分别对应文献获取、文档入库、证据检索和研究规划。
+
+这样把“知道有哪些能力”和“掌握如何执行”拆开。模型先按任务选择，再支付正文的上下文成本。宿主还保留了 `eager` 全量加载模式，可在相同任务上比较加载策略的代价。
+
+取舍是多出发现、加载的交互步骤，短任务不一定获得延迟收益。它换来更小的初始提示，以及可核对的执行版本：Skill 文件发生变化后，旧 hash 无法直接调用，必须重新加载。论文和下载内容不进入 Skill 目录扫描，避免把外部资料当作可执行扩展。
+
+## 2. 按信息类型减少上下文，保留原始审计记录
+
+通用 loop 将会话消息和工具观察追加到 `Session.messages`，工具输出通过长度限制控制单次回灌规模；知识工具提供稳定 `chunk_id`，需要原文时用 `get_chunk` 回读。
+
+更强的上下文裁剪位于 [CodingApplication._model_messages()](src/researchops/coding/agent.py)：每次模型调用从完整消息复制发送视图，省略较早 `write_file` 调用中的源码正文，并替换较长的历史工具输出。文件仍在项目目录，可以通过 `read_file` 获取当前内容；完整消息继续保存在 checkpoint 中。
+
+文献信息则由 [PaperCompressor](src/researchops/knowledge/compression.py) 分为 L0 身份卡、L1 筛选卡、L2 全文复现档案和 L3 问题相关综合。L3 先检索有限证据节点，再生成带节点引用的综合；缓存同时关联内容、prompt 和实现版本。
+
+结构化省略和按需回读减少旧源码与长材料反复占用输入，原始记录保留生成依据。代价是模型可能需要额外读取文件或证据；摘要用于筛选与综合，引用保留节点身份和原文定位。
+
+## 3. 工具可见性和执行权限分别检查
+
+[ToolPolicy 与 ToolExecutor](src/researchops/harness/runtime.py) 共同形成执行边界：允许列表决定模型可以选择什么，执行时的授权决定 handler 能否进入。即使模型构造了隐藏工具名，Skill 入口也会返回拒绝；`invoke_skill` 内部调用目标工具时，仍然重新经过 executor。
+
+Skill 的授权还包含版本约束：`load_skill` 将 hash 写入当前会话的 `loaded_skills`，`invoke_skill` 重新读取文件，要求调用 hash、会话加载 hash 和当前文件 hash 一致。声明 `requires_confirmation` 的工具在缺少显式确认时被拒绝。
+
+资源边界由具体 handler 落实。CLI 文件路径先 `resolve()`，再校验是否位于工作区或显式 `--allow-root` 内；Skill 目录只接受宿主绑定名称，并检查目录、文件和链接边界。Web 查询会话、run 和知识库均使用认证身份对应的项目范围。
+
+每个新增 handler 都要明确资源权限。schema 检查负责调用形状，业务范围和取值约束由 handler 校验，两层职责需要同时维护。
+
+## 4. 预算先预留再调用，失败请求保留未知成本
+
+[BudgetedModel](src/researchops/harness/budget.py) 在发起请求前调用 [reserve_call](src/researchops/coding/budget.py)，用序列化输入的 UTF-8 字节数、消息 framing、输出上限和 provider 余量估算预留。准入成功后先落盘账本和请求，再向模型服务发送调用。
+
+服务端返回有效 usage 后按实际 token 结算；断连、缺少 usage 或中断请求保留预留计费。若实际 usage 超过预留边界，记录实际成本并抛出预算异常。Skill 外层决策和内部组件的模型调用共享外层 `BudgetedModel`，研究规划组件还保留自身的预算账本。
+
+超时请求仍可能在服务端完成生成和计费，因此预算采用保守预留。代价是输入估计和余量可能提前拒绝仍有余额的请求；token cap 约束客户端调用准入，服务商账单以服务端计费为准。账本把已知用量和未知预留分开，便于分析成功成本与全部尝试成本。
+
+## 5. 恢复依赖状态和工件校验，完成依赖外部验证
+
+[CodingApplication](src/researchops/coding/agent.py) 用工作区锁串行化同一项目的运行，将消息、用量、工具结果和验证状态写入原子替换的 JSON checkpoint。恢复时检查 plan hash；验证缓存同时关联源码和 harness 指纹。中断批次中缺失结果的工具调用会被补记为 `interrupted`，让模型检查现状后决定操作。
+
+这种恢复方式避免直接重放可能已经生效的写入。模型重新观察现场，执行进度由 checkpoint、文件和验证结果确定。指纹与状态需要额外维护。
+
+[CodingSandbox](src/researchops/coding/sandbox.py) 解析 Docker image ID 后启动断网容器：项目、数据、输入规格和外部 verifier 只读挂载，结果目录可写；同时限制 CPU、内存、进程数和运行时长，使用非 root 用户并移除 capabilities。verifier 从输出重新计算指标，检查实现行为，结果再反馈给 Coding 循环。镜像不可用、执行超时或验证失败时，验证结果记为失败。
+
+Web 的失败恢复采用另一种边界：[WebStore](backend/src/researchops_api/store.py) 在后端启动时将遗留的 `running` 标为 `interrupted`，保留历史和运行记录，避免自动重放付费请求。JSONL trace、模型请求响应、验证报告和 checkpoint 分别记录“做过什么”“依据是什么”“在哪一步停止”。
+
+## 6. 检索将召回、排序和证据支持分开
+
+[HybridRetriever](src/researchops/knowledge/retrieval.py) 将 BM25/FTS 与 dense 候选合并，再由 cross-encoder 重排，使用 MMR 控制结果冗余。关键词适合术语和精确名称，向量覆盖表达差异，重排判断问题与段落关系，MMR 避免相近段落占满上下文。
+
+研究规划可选择 CPU 多查询的 [EvidenceRetriever](src/researchops/knowledge/evidence_retrieval.py)，或采用 [FusionRetriever](src/researchops/knowledge/fusion_retrieval.py)：融合旧检索与 CPU 检索的论文候选，以加权排名作为底座，要求模型排序给出来源中的连续原文引用，并逐字验证引用。排序结构反复校验失败时，使用排名融合顺序回退，保留旧检索的首位锚点。
+
+融合保留原有召回，并约束新增排序判断的证据来源。代价是更多查询、候选和模型调用；检索质量与方案质量分别测量。
+
+向量缓存按模型名称、revision 和节点 source hash 检查，仅编码新增或变化的段落。默认 Web Compose 使用 hashing 向量和词法重排，减少启动依赖；神经检索评测对应单独的模型配置。
+
+## 7. 研究方案由宿主编译，评审调用彼此分离
+
+[plan_study](src/researchops/application/study.py) 固定语料快照、读取已验证数据、检索并过滤证据，再将任务交给 [refine_study](src/researchops/experiments/study_workflow.py)。模型提出结构化方案，宿主通过 `compile_contract` 生成实验规格，执行机械 Gate 与公式证据检查，再调用 critic；候选满足条件后，另一次终审调用读取方案和证据，不接收前一次评审结论。
+
+失败反馈包含编译错误、机械检查和评审意见，在有限修订次数内重新生成。最终结果将 `ready_for_coding`、`blocked_before_coding` 和训练执行状态分别保存。
+
+字段合法、数据隔离、证据充分和研究设计合理分别检查。宿主编译固定可检查的约束，独立调用降低同一段生成直接自我认可的风险。代价是额外调用、延迟和评审波动；相同模型的不同评审调用属于 LLM 银标，方案验收覆盖研究设计与规格交付。
+
+## 8. 多入口共用内核，能力范围由 adapter 收紧
+
+[frontend/](frontend/) 是独立 Vite 应用，生产环境由 Nginx 提供静态文件并代理 `/api`；[backend/](backend/) 是 FastAPI 服务，负责 JWT、项目上传、SQLite 会话、后台执行和 run 查询。后端在线程池运行阻塞研究调用，SSE 发送心跳和任务终态；连接异常时前端查询 run 状态。
+
+Web 工具集合只覆盖知识检索、原文回读和提取式证据回答。CLI Skill 入口承担文献获取与研究规划，Coding 从独立入口运行。共享工具循环可减少权限、参数处理和 trace 行为分叉；adapter 保留不同能力边界，避免浏览器会话获得文件写入或代码执行能力。
+
+代价是入口配置需要分别维护。Web 使用共享本地密码签发身份 JWT，适用于受控访问；`user_id` 是登录时提交的命名空间，身份隔离依赖这套访问约定。前后端分离也带来代理、Cookie、CORS 和持久化路径的配置成本，相关配置集中在模板与 Compose 文件。
+
+# 性能与测试
+
+任务的 oracle 决定评测范式：有可执行测试的任务可统计 pass@k，科研方案依赖评委判断，不同评委可能给出不同分数。本项目采用固定评委配置下的对照、组件消融和可计数 grounding，保留原文支持率与引用定位记录。结果采用 LLM 银标，非人工金标；固定语料单轮比较只声称相对改进，科研方案不设置 pass@k 基线。
+
+- 检索融合：固定 94 篇语料、按问题宏平均、前十论文去重，Fusion 的 nDCG@10 从旧方案的 .690 提高到 .749，Recall@10 从 42.21% 提高到 42.89%。[检索与生成](docs/PERFORMANCE.md#检索融合与生成质量)
+- 证据组织与修订：固定 94 篇语料的同轮 CPU 组件消融中，方案可用性从仅改检索的 2.75 提高到 4.00，评分为 LLM 银标 0–4 分，非人工金标。[组件消融](docs/PERFORMANCE.md#证据组织与方案修订)
+- Skill 按需加载：两个成功重复对照中，初始提示 token 减少 68.7%，平均总 token 减少 57.4%，失败与未知预留成本另记账本。[上下文与局部开销](docs/PERFORMANCE.md#上下文索引与局部开销)
+- 增量索引：同轮单机扩库复用 93.2% 旧向量，新增 530 段编码耗时 21.92 秒，相对全量重建约快 12.7 倍。[增量扩库](docs/PERFORMANCE.md#增量扩库)
+- 方案端到端：6 个同领域新组合任务的最终交付率为 83.3%，相同题目的修复复验为 100%，交付条件包括机械 Gate 与 LLM 银标评审，终点为 coding 前冻结规格。[批次与统计说明](docs/PERFORMANCE.md#coding-前端到端)
+
+完整表格、测量说明和 token 账本见 [科研性能报告](docs/PERFORMANCE.md)；评测输入与边界见 [冻结评测协议](evaluation/protocols/)。原始数据保存在 [Precode 明细](evaluation/results/precoding_v4_metrics.json)、[增量 RAG 明细](evaluation/results/rag_incremental_metrics.json) 和 [完整实测报告](evaluation/results/measured_reports.json)。
+
+# 运行与启动
+
+以下命令在项目根目录 PowerShell 执行。本地需要 Python 3.11+；前端需要 Node.js 20.19+ 或 22.12+。
+
+## 配置与安装
 
 ```powershell
-python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -e ".[dev,pdf,retrieval,datasets]"
-Copy-Item .env.example .env
-# 编辑 .env 中模型端点、API key、模型名等配置
-.\.venv\Scripts\python.exe researchops.py --help
-.\.venv\Scripts\python.exe researchops.py skills
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+if (-not (Test-Path .env.web)) { Copy-Item .env.web.example .env.web }
+if (-not (Test-Path .venv)) { python -m venv .venv }
+.\.venv\Scripts\python.exe -m pip install -e ".[web,pdf,retrieval]"
 ```
 
-模型服务使用兼容 Chat Completions 与工具调用的 API。本地向量模型和重排模型可以在 CPU 上运行；首次使用需获取权重。OCR 可另外安装 `.[docling]`，也可先使用 `--pdf-parser pymupdf`。`.env.example` 提供配置项，真实 `.env` 留在本地。
+在 `.env` 中填写模型 URL、API key 和模型名；在 `.env.web` 中填写登录密码和至少 32 字节的 JWT 密钥，模板见 [.env.example](.env.example) 与 [.env.web.example](.env.web.example)。Docker 部署只需准备配置文件。
+
+## CLI：模型通过 Skill 选择能力
 
 ```powershell
-# 新 IDEA：选技、检索、下载、入库、分析
-.\.venv\Scripts\python.exe researchops.py --workspace knowledge_base/my_research research "ViT 少样本分类中 LoRA 与视觉提示的比较" --max-queries 2 --limit-per-query 4 --max-downloads 2 --token-cap 400000
-
-# 自然语言组合调用：路径替换为实际已有论文
-.\.venv\Scripts\python.exe researchops.py --workspace knowledge_base/my_research --allow-root papers agent "把 papers/paper.pdf 入库，再检索其低秩更新机制并给出原文引用" --token-cap 250000
-
-# 在已有语料与已验证数据上，生成并审查 coding 前实验方案
-.\.venv\Scripts\python.exe researchops.py --workspace knowledge_base/new_study plan-study "比较 ViT 的 LoRA rank=2/8/16，使用验证集选参，测试集独立评估" --source knowledge_base/workspace_rag_cpu_v31 --dataset-workspace knowledge_base/workspace_batch_vit_v2 --retrieval-strategy fusion --token-cap 600000
-
-# 不调用生成模型的知识检索
-.\.venv\Scripts\python.exe researchops.py --workspace knowledge_base/my_research search "low-rank adaptation"
+.\.venv\Scripts\python.exe researchops.py --workspace knowledge_base/my_research research "ViT 少样本分类中的 LoRA 与视觉提示比较" --max-queries 2 --limit-per-query 4 --max-downloads 2 --token-cap 400000
 ```
 
-后两条规划示例使用本地已有语料。新 clone 请先获取并入库论文、准备数据，再指定自己的源工作区。`--workspace`、`--allow-root` 是全局参数，放在子命令之前。新工作区的 PDF/源码包和数据集会自动写入中央 `papers/`、`datasets/`，工作区内保留兼容目录入口。
+## 独立前后端：FastAPI + Vite
 
-## 实测：coding 前端到端
-
-端到端通过率：IDEA 进入系统后，最终产物同时通过机械 Gate、独立调用的科学性银标评审与终审；有预算约束的版本还要求累计 token 在上限内。它衡量研究方案链条的交付质量。
-
-| 评测批次与样本 | 首次结果 | 最终结果 |
-| --- | --- | --- |
-| v2：共享 30 篇语料、12 IDEA | 机械 8/12（66.7%）；银标 6/12（50%） | 预算内端到端 6/12（50%） |
-| v2：4 个联网获取任务，含缓存复用 | 机械 2/4；银标 2/4 | 预算内端到端 1/4（25%） |
-| v4：12 个历史 IDEA 回归 | 8/12 | 12/12 |
-| v4：4 个参数/指标表达变体 | 2/4 | 4/4 |
-| v4：4 个不适用/泄漏/证据/预算边界探测 | — | 正确拦截 4/4 |
-| v4：6 个同领域新组合 | 首版科学方案 3/6；计日志故障后完整首次交付 2/6 | 5/6 |
-| v4.1：上述 6 题统一修复版，复用获取 checkpoint | 首版科学方案 6/6 | 端到端 6/6 |
-| CPU 公开入口：相同 2 题对照 | 旧路径 2/2；CPU 路径 1/2 | 两路径均 2/2 |
-| Fusion 公开入口：相同 2 题对照 | 两路径首版方案均 2/2 | 两路径均 2/2 |
-| Skills 组合规划：1 个真实任务 | 修订后第 2 版通过 | 机械检查 10/10，两次独立检查一致；2 条获支持引用 |
-
-v4.1 覆盖 75 篇唯一全文，其中 51 篇相对原始 30 篇语料新增；新题 14/14、旧题 22/22、变体 7/7 条引用可定位且获银标支持。6 题各规划 90/108/90/72/54/90 个操作，共 504 个（336 训练、168 测试）；这些是冻结计划。Skills 规划案例形成 243 个操作（162 训练、81 测试），同样未执行训练。
-
-## 实测：检索、RAG 与扩库
-
-主要检索比较使用同一领域的 6 IDEA、12 问、94 篇论文、7,757 个段落。相关性银标覆盖 94×12 个论文—问题组合；12 问的 163 个全文片段另作证据判定。指标按问题宏平均、前十论文去重计算。
-
-| 指标（越大越好） | 旧完整方案 | CPU 方案 | Fusion 融合方案 |
-| --- | ---: | ---: | ---: |
-| Recall@10：前十结果找回相关论文的比例 | 42.21% | 41.65% | 42.89% |
-| MRR@10：第一篇相关论文的倒数排名 | 1.000 | 0.917 | 1.000 |
-| nDCG@10：兼顾相关程度与位置的排序质量 | 0.690 | 0.703 | 0.749 |
-| 新增 7 篇论文的 Recall@10 | 43.75% | 46.53% | 50.69% |
-
-Fusion 同轮匿名评审，分数 0–4；事实支持率按全部输出事实计数：
-
-| 生成与方案指标 | 旧完整方案 | CPU 完整方案 | Fusion 完整方案 |
-| --- | ---: | ---: | ---: |
-| 知识正确性 | 3.83 | 3.92 | 4.00 |
-| 问题覆盖：是否答全问题 | 3.58 | 3.25 | 3.83 |
-| 方案可用性：设计能否指导研究 | 2.42 | 3.25 | 4.00 |
-| 六项实验设计细则平均 | 2.21 | 3.33 | 3.82 |
-| 全部事实获原文充分支持 | 37/49（75.51%） | 35/43（81.40%） | 50/52（96.15%） |
-| 可证伪性 | 2.42 | 3.33 | 4.00 |
-| 控制变量与公平比较 | 2.75 | 3.17 | 3.67 |
-| 指标与结论判定 | 1.67 | 3.08 | 4.00 |
-| 验证/测试数据隔离 | 1.75 | 3.67 | 4.00 |
-| 不确定性与多种子 | 1.58 | 3.50 | 3.50 |
-| 实施范围与资源可行性 | 3.08 | 3.25 | 3.75 |
-
-Fusion 相对旧方案，预定七项总体指标六升一平。逐字证据卡 58/58 可验证、无效引用 ID 为 0、重复检索 12/12 排序一致。按 6 IDEA 配对重采样的 95% 描述区间：召回增量 [-0.059, 0.069]，排序增量 [-0.029, 0.173]，方案分增量 [1.33, 1.83]，事实支持率增量 [0.117, 0.292]。
-
-扩库使用此前真实下载的 7 篇新增论文，分三批加入；以下为各阶段全部相关论文的 nDCG@10：
-
-| 论文快照 | 旧方案 | CPU | Fusion | Fusion Recall@10 |
-| --- | ---: | ---: | ---: | ---: |
-| 87 篇 | 0.641 | 0.613 | 0.649 | 43.08% |
-| 89 篇 | 0.652 | 0.603 | 0.673 | 42.32% |
-| 92 篇 | 0.669 | 0.679 | 0.692 | 40.97% |
-| 94 篇 | 0.690 | 0.703 | 0.749 | 42.89% |
-
-另外固定原有 87 篇为目标，Fusion 旧证据排序质量 0.649→0.611，下降 0.037；旧证据召回 43.08%→39.39%，中间最低 38.98%，最大下降 4.11 个百分点。系统分别记录整体相关性、新论文覆盖和旧证据保留，按排序下降 0.05、召回下降 3 个百分点的阈值输出回归信号。
-
-下表保存早期消融结果，作为独立 RAG 增益的对照。斜线依次为 Recall@10 / MRR@10 / nDCG@10：
-
-| 查询方式 | 关键词 | 向量 | 混合 | 完整神经 RAG |
-| --- | --- | --- | --- | --- |
-| 原始问题 | 21.96% / .639 / .384 | 23.31% / .522 / .343 | 26.45% / .764 / .483 | 27.62% / .786 / .519 |
-| 规划查询 | 38.54% / .903 / .655 | 25.26% / .715 / .398 | 40.96% / .806 / .596 | 42.21% / 1.000 / .690 |
-
-规划查询后的同轮生成对照：
-
-| 指标 | 无 RAG | 关键词 RAG | 完整神经 RAG |
-| --- | ---: | ---: | ---: |
-| 知识正确性（0–4） | 3.83 | 3.83 | 3.83 |
-| 问题覆盖（0–4） | 3.67 | 4.00 | 3.83 |
-| 方案可用性（0–4） | 3.83 | 3.92 | 3.58 |
-| 原文充分支持的事实 | 0/46 | 34/46（73.91%） | 40/49（81.63%） |
-| 引用定位 | — | 41/41 | 48/48 |
-| 充分支持的已引用事实 | — | 34/41（82.93%） | 40/48（83.33%） |
-
-无 RAG 的原文支持计数仅衡量可核查外部证据。原始问题阶段的正确性为 3.50/3.67/3.67，方案分为 3.92/3.83/3.83，事实支持率为 0/63.83%/75.00%。原始问题下完整 RAG 相对关键词的召回增量为 5.67 个百分点（描述区间 1.73–9.19），排序增量 .135（.042–.224）；规划查询下分别为 3.67 个百分点（.71–6.57）和 .035（-.088–.150）。
-
-CPU 阶段另有一轮共同裁判消融，三组为“旧流程 / 只改检索 / 检索+证据卡/蓝图/修订”：正确性 3.83/3.83/3.92，覆盖 3.83/3.83/3.50，方案 2.83/2.75/4.00，设计均分 2.51/2.47/3.85，事实支持 32/49、30/45、32/43。其方案增量区间相对旧流程为 [1.00, 1.33]、相对只改检索为 [1.08, 1.42]。各维细则、逐 IDEA/逐问和全部历史结果见下方指标目录，轮次之间保持原裁判口径。
-
-## 实测：局部模块与资源
-
-| 局部指标 | 实际结果 |
-| --- | --- |
-| 初始 PDF、解析产物、存储节点完整性 | 30/30，重算文件 hash |
-| 初始有效神经向量覆盖 | 14,315/14,315 |
-| 数据集与样本校验 | 5/5；141,178 样本；排除 38 个重复像素样本，划分间剩余精确重复为 0 |
-| 银标节点引用可定位 | 87/87 |
-| 获取 trace 覆盖 / checkpoint 恢复 | 128/128 阶段；10/10 节点恢复，无重复下载 |
-| 七个文献源单关键词实测 | 检索 6/7；具有直链的首条候选下载 3/4 |
-| 40 条银标的文献筛选 | nDCG@10=.7633，nDCG@30=.8740；6 篇 shortlist 精确率 1.0、召回率 .1579 |
-| 8 问定向检索：BM25 | Hit@1=.625，Hit@5=.750，MRR@10=.6875 |
-| 8 问定向检索：向量 | .375 / .625 / .4826 |
-| 8 问定向检索：混合 | .750 / .875 / .8056 |
-| 扩库向量复用 | 旧 7,227 段不变；新增三批 156/251/123，共 530 段 |
-| 索引构建时间，单机本轮观测 | 原 7,227 段 268.81 秒；增量 530 段 21.92 秒；全量 7,757 段 278.83 秒；复用 1.02 秒 |
-| 索引维护效率 | 93.2% 旧向量复用；增量相对重建约 12.7 倍 |
-| 查询中位耗时：关键词/向量/混合/完整 | .53 / 1.64 / 2.02 / 7.07 秒；重复完整 7.17 秒；查询规划 6.78 秒 |
-| CPU 证据处理 | 核验 44 条原文引用；拒绝 14 张不合规卡；12 问中 8 次修订、1 次补检索 |
-| 公式候选的原图定位 | 3 篇、3 页、11 个区域，11/11 可定位 |
-| 公式严格源码一致 | 初始 2/11，经紧裁剪 4/11（36.36%） |
-| 源码一致或有依据恢复 | 8/11（72.73%）；其中 4 处为源码恢复；其余 2 争议、1 待核验 |
-| 公式版本/缓存/状态传递 | 3/3 版本匹配，3/3 重复缓存命中，11/11 节点状态保留 |
-| 公式证据 Gate | 8 个可用、3 个过滤；11/11“公式单独支持复现”探测被拒绝 |
-| Skill 路由/不适用任务 | 12/12 选技正确；2 个不适用任务中误调用 0 |
-| Skill 实际调用 | 18 次调用工件核验；获取案例 2 候选→1 下载→1 解析→1 分析→1 规划；入库 612 节点；检索 5 条定位引用 |
-| 连续组合调用 | 3 次入库→检索运行，分别 5/6/8 条引用 |
-| 按需/全量加载，两个成功重复 | 初始提示各 881 / 2,817 token；总 token 为 4,517、4,604 / 10,698、10,700；各 3 次控制调用 |
-| 上下文加载开销 | 成功运行提示减少 68.7%，平均总 token 减少 57.4%；两模式空证据正确拒绝各 2/2 |
-| 历史回归测试记录 | 53→71→87→93→104→109→124→133 项，各阶段全部通过；阶段数不累加 |
-
-早期检索 Hit@k 指前 k 项是否出现指定目标；向量覆盖和引用定位分别衡量产物完整性与可追踪性。公式源码恢复单独计数。独立人工金标准确率、公式检测召回率继续保留为 `null`。
-
-## 运行预算与独立 coding 记录
-
-账本区分服务端返回的已知用量与失败调用的未知用量预留：
-
-| 阶段 | 已知 token | 未知用量预留 | 累计计入预算 |
-| --- | ---: | ---: | ---: |
-| Precode v2 | 253,176 | 37,209 | 290,385 |
-| Precode v4/v4.1 | 3,694,358 | 548,716 | 4,243,074 |
-| 增量 RAG / 查询规划累计阶段 | 4,455,294 | 57,999 | 4,513,293 |
-| CPU RAG 与公开入口 | 1,178,647 | 108,582 | 1,287,229 |
-| Fusion RAG 与公开入口 | 1,631,010 | 225,161 | 1,856,171 |
-| Skills 全部 37 次运行、113 次派发尝试 | 662,924 | 152,390 | 815,314 |
-
-这些阶段存在历史累计/子组件包含关系，保持各自账本，不直接相加。Skills 组合调用成功用量 61,644，加失败 35,534 后为 97,178；规划组件 153,115、含外层 170,855。按需加载对照若计入断连重试与未知预留为 28,206，全量加载为 21,398；成功运行开销与所有尝试成本分别保留。
-
-独立 coding 工程记录：两个空目录起点分别用 103,189 / 102,028 token，通过 22/22 项外部检查和 6/6 个开发任务，首次任务通过各 4/6；分别 10/11 次模型调用，均经历恢复和重规划。此前两条开发谱系 43,173 / 70,332 token 停止或失败，四条谱系合计 318,722。最大活动上下文 26,366 / 22,376 UTF-8 字节，活动耗时 351.66 / 344.17 秒。模板工程也通过 22/22；调度器 128 个作业是模拟验证。以上独立记录单列，不计入 coding 前性能。
-
-## 复核与继续开发
+首次启动前执行 `npm --prefix frontend ci`，再在两个终端分别启动后端和前端：
 
 ```powershell
-.\.venv\Scripts\python.exe -m pytest -q -p no:cacheprovider --basetemp .test_runs/review
+.\.venv\Scripts\python.exe -m uvicorn researchops_api.main:create_app --factory --app-dir src --host 127.0.0.1 --port 8000
 ```
 
-完整指标目录保留 **35 份历史文档的 45 张数字表及数字上下文**，涵盖逐 IDEA 结果、全部设计细则、费用拆分和历史阶段：
+```powershell
+npm --prefix frontend run dev
+```
 
-- [历史指标目录](evaluation/results/historical_metric_catalog.json)
-- [原始报告的可公开副本](evaluation/results/measured_reports.json)
-- [Precode 明细](evaluation/results/precoding_v4_metrics.json) 与 [增量 RAG 明细](evaluation/results/rag_incremental_metrics.json)
-- [冻结评测协议](evaluation/protocols/)
-- [目录维护与兼容性核验](evaluation/results/cleanup_verification.json)：本次整理后回归 136/136 通过，未新增收费模型调用。
-- [后续开发交接](DEVELOPMENT.md)
+访问 `http://127.0.0.1:5173`，API 文档位于 `http://127.0.0.1:8000/docs`。
 
-`.env`、论文、数据集、知识库、模型缓存、运行工件和中间结果默认不入 Git；公开报告保存测量数据，完整请求、失败账本和原文件保留在本地科研档案。第三方来源与许可证见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+## Docker Compose：Nginx + FastAPI
+
+准备上述 `.env` 与 `.env.web` 后执行：
+
+```powershell
+docker compose --env-file .env.web up -d --build --wait
+```
+
+访问 `http://127.0.0.1:3000`，数据持久化到 `web_workspace/`。完整安装与故障排查见 [运行方式](RUNNING.md)。
+
+# 许可证
+
+本项目以 [MIT License](LICENSE) 开源。第三方代码、论文与数据集遵循各自许可证和使用条款。

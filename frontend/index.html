@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>ResearchOps 科研工作台</title></head>
+<body>
+<main>
+  <header><span class="brand">ResearchOps</span><span>科研工作台</span><span id="connection">正在连接…</span></header>
+  <section class="login" id="login-panel"><h1>从研究问题开始</h1><p>连接论文证据，整理研究约束，在连续对话中推进研究。</p>
+    <form id="login"><label>用户标识<input id="user" autocomplete="username" required pattern="[a-zA-Z0-9_-]+"></label>
+    <label>访问密码<input id="password" type="password" autocomplete="current-password" required></label><button>进入工作台</button></form>
+  </section>
+  <section id="workspace" hidden>
+    <div class="toolbar"><label>项目<input id="project" value="default" pattern="[a-zA-Z0-9_-]+"></label><button id="new-session" type="button">新建对话</button><button id="logout" type="button">退出</button></div>
+    <div class="columns"><section class="conversation"><h2>研究对话</h2><div id="messages" aria-live="polite"><p class="muted">描述你的研究问题、资源预算和需要核对的证据。</p></div>
+      <form id="chat"><label for="message">研究问题</label><textarea id="message" required maxlength="12000" placeholder="比较小数据图像分类中的 LoRA 与视觉提示，先整理需要核验的证据…"></textarea><button id="send">发送</button></form></section>
+      <aside><h2>项目资料</h2><p>将论文或笔记加入当前项目，在对话中检索原文。</p><form id="upload"><label>选择资料<input id="document" type="file" accept=".pdf,.md,.txt" required></label><button id="upload-button">导入资料</button></form><p id="upload-status" aria-live="polite"></p><p class="muted">支持 PDF、Markdown 和纯文本，单个文件不超过 20 MiB。</p></aside></div>
+  </section>
+  <p id="status" role="status"></p>
+</main><script type="module" src="/src/main.js"></script>
+</body></html>

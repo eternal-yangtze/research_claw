@@ -1,6 +1,5 @@
 """Read metadata first; load bodies only after selection from a trusted root.
 
-The discovery/loading separation follows the TaleClaw design; see DEVELOPMENT.md.
 This implementation uses this project's binding, policy and artifact contracts.
 """
 from __future__ import annotations

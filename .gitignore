@@ -8,16 +8,27 @@
 *.key
 credentials*.json
 
-# 本地开发记录、交接与 Development 文档（含不同大小写及副本）
-DEVELOPMENT*
-Development*
-development*
+# 本地开发记录已合并为 DEVELOPMENT.md；同名目录、大小写变体及副本继续排除
+*[Dd][Ee][Vv][Ee][Ll][Oo][Pp][Mm][Ee][Nn][Tt]*
+
+# 合并前的私有说明与历史 README 副本继续排除
+/[Rr][Ee][Aa][Dd][Mm][Ee]_[Pp][Rr][Ii][Vv][Aa][Tt][Ee]*
+/readme_orgin.md
+/readme_origin.md
+
+# 私有工程摘要不上传；科研最终指标与冻结评测协议继续保留
+/evaluation/results/cleanup_verification.json
+/evaluation/results/historical_metric_catalog.json
+/.evals/
+/logs/
 
 # 演示专用文件和目录：说明、脚本、素材、回放与输出
 # 按名称忽略演示内容；不笼统忽略 PNG / SVG，以保留 README 配图。
 *demo*
 *Demo*
 *DEMO*
+*演示*
+*录屏*
 
 /recordings/
 /screenshots/
@@ -131,6 +142,11 @@ test-results/
 Thumbs.db
 Desktop.ini
 
-# README、正式源码、测试、Skills、配置模板、Dockerfile / Compose 文件，
-# 以及 evaluation/results、evaluation/protocols 继续允许提交。
+# 当前评审文档允许上传；运行文档已改名为 RUNNING.md
+!/README.md
+!/RUNNING.md
+!/docs/PERFORMANCE.md
+
+# 正式源码、测试、Skills、配置模板、Dockerfile / Compose 文件，
+# 以及科研最终指标 evaluation/results、冻结评测协议 evaluation/protocols 继续允许提交。
 # 不使用笼统的 *.json / *.pdf / *.md / *.png / *.svg 忽略规则。

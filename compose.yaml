@@ -1,0 +1,31 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    env_file:
+      - .env
+      - .env.web
+    environment:
+      RESEARCHOPS_WEB_WORKSPACE: /app/web_workspace
+      RESEARCHOPS_PDF_PARSER: pymupdf
+      RESEARCHOPS_RETRIEVAL_BACKEND: hashing
+      RESEARCHOPS_FRONTEND_ORIGINS: http://127.0.0.1:3000,http://localhost:3000
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ./web_workspace:/app/web_workspace
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/ready', timeout=5)"]
+      interval: 10s
+      timeout: 8s
+      retries: 12
+    restart: unless-stopped
+  frontend:
+    build: ./frontend
+    ports:
+      - "127.0.0.1:3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped

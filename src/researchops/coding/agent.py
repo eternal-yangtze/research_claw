@@ -1,4 +1,4 @@
-"""TaleClaw-derived coding application on ResearchOps' existing model/tool harness.
+"""Research experiment coding application on the model/tool harness.
 
 The model writes the implementation; an external Docker verifier owns completion.
 """
