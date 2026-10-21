@@ -1,0 +1,109 @@
+{
+  "schema_version": "idea-library-v1",
+  "ideas": [
+    {
+      "idea_id": "vit_peft_small_data",
+      "title": "Parameter-efficient adaptation of vision transformers for small image datasets",
+      "domain": "ai_ml",
+      "difficulty": "beginner_to_intermediate",
+      "description": "Adapt a pretrained vision transformer to small image-classification datasets using low-rank adapters and lightweight regularization, targeting accuracy close to full fine-tuning with substantially fewer trainable parameters.",
+      "research_question": "Can low-rank adapters with lightweight regularization match full fine-tuning on small image-classification datasets while reducing trainable parameters and memory?",
+      "atomic_claims": [
+        "Low-rank adaptation can approach full fine-tuning accuracy with fewer trainable parameters.",
+        "Adapter rank and regularization strength have measurable low-data accuracy and calibration trade-offs.",
+        "The method should be compared with linear probing, full fine-tuning, visual prompt tuning, and standard adapters on fixed data splits."
+      ],
+      "success_criteria": [
+        "Report accuracy, macro F1, calibration error, trainable parameters, peak memory, and training time.",
+        "Use at least two small public image-classification datasets and three random seeds.",
+        "Include rank, regularization, and data-fraction ablations without changing test splits."
+      ],
+      "subproblems": [
+        "Which parameter-efficient adaptation components and training objectives are reproducible baselines for pretrained vision transformers?",
+        "Which datasets, low-data splits, metrics, and competing baselines are used to evaluate parameter-efficient vision adaptation?",
+        "What accuracy, calibration, memory, and compute trade-offs or limitations are reported?"
+      ],
+      "search_queries": [
+        {"source": "arxiv", "query": "parameter efficient fine tuning vision transformer image classification"},
+        {"source": "arxiv", "query": "low rank adaptation LoRA vision transformer"},
+        {"source": "arxiv", "query": "visual prompt tuning vision transformer"},
+        {"source": "arxiv", "query": "adapter tuning vision transformer small dataset"},
+        {"source": "openalex", "query": "parameter efficient fine tuning vision transformer"},
+        {"source": "openalex", "query": "low rank adaptation vision transformer"},
+        {"source": "openreview", "query": "parameter efficient vision transformer"},
+        {"source": "openreview", "query": "visual prompt tuning"},
+        {"source": "cvf", "query": "parameter efficient vision transformer"},
+        {"source": "cvf", "query": "visual prompt tuning transformer"},
+        {"source": "crossref", "query": "parameter efficient adaptation vision transformer"},
+        {"source": "dblp", "query": "parameter efficient vision transformer"}
+      ]
+    },
+    {
+      "idea_id": "masked_ts_classification",
+      "title": "Masked self-supervised pretraining for time-series classification",
+      "domain": "time_series",
+      "difficulty": "beginner_to_intermediate",
+      "description": "Study whether simple masked reconstruction pretraining improves time-series classification when labeled samples are limited.",
+      "research_question": "When labels are limited, does masked reconstruction pretraining improve time-series classification over supervised training from scratch?",
+      "atomic_claims": ["Masked pretraining improves label efficiency.", "Mask ratio and pretraining data diversity affect transfer quality."],
+      "success_criteria": ["Evaluate fixed label fractions and multiple seeds.", "Compare with training from scratch and contrastive pretraining."],
+      "subproblems": ["Which masking and reconstruction objectives are reproducible?", "Which datasets and label-fraction protocols are standard?", "Which baselines and ablations are required?"],
+      "search_queries": [
+        {"source": "arxiv", "query": "masked self supervised time series classification"},
+        {"source": "arxiv", "query": "time series representation learning masked reconstruction"},
+        {"source": "openalex", "query": "masked pretraining time series classification"},
+        {"source": "openreview", "query": "self supervised time series representation"}
+      ]
+    },
+    {
+      "idea_id": "sparse_graph_ts_anomaly",
+      "title": "Sparse graph regularization for interpretable multivariate time-series anomaly detection",
+      "domain": "time_series",
+      "difficulty": "intermediate",
+      "description": "Add a sparse learned dependency graph to a standard multivariate anomaly detector and evaluate detection plus variable-level explanations.",
+      "research_question": "Can sparse graph regularization improve variable-level explanations without reducing multivariate anomaly-detection accuracy?",
+      "atomic_claims": ["Sparse dependencies can identify variables related to an anomaly.", "Graph sparsity creates a measurable accuracy-interpretability trade-off."],
+      "success_criteria": ["Report F1 and AUROC with explanation fidelity and sparsity.", "Compare with a non-graph detector and a dense graph variant."],
+      "subproblems": ["Which graph anomaly detectors are reproducible baselines?", "How are variable-level explanations evaluated?", "Which public datasets and leakage controls are standard?"],
+      "search_queries": [
+        {"source": "arxiv", "query": "graph multivariate time series anomaly detection"},
+        {"source": "arxiv", "query": "interpretable multivariate time series anomaly localization"},
+        {"source": "openalex", "query": "graph multivariate time series anomaly detection"},
+        {"source": "openreview", "query": "time series anomaly graph"}
+      ]
+    },
+    {
+      "idea_id": "kg_negative_sampling",
+      "title": "Relation-aware negative sampling for knowledge-graph link prediction",
+      "domain": "knowledge_graph",
+      "difficulty": "beginner_to_intermediate",
+      "description": "Use relation type constraints to sample harder but valid negatives for a standard knowledge-graph embedding model.",
+      "research_question": "Does relation-aware negative sampling improve link prediction over uniform corruption at similar training cost?",
+      "atomic_claims": ["Relation constraints reduce trivial negatives.", "Harder negatives improve filtered ranking metrics when false-negative risk is controlled."],
+      "success_criteria": ["Report filtered MRR and Hits@K.", "Compare uniform, frequency-based, self-adversarial, and relation-aware sampling."],
+      "subproblems": ["Which negative-sampling methods are strong baselines?", "How are false negatives controlled?", "Which datasets and filtered metrics are standard?"],
+      "search_queries": [
+        {"source": "arxiv", "query": "knowledge graph link prediction negative sampling"},
+        {"source": "openalex", "query": "relation aware negative sampling knowledge graph"},
+        {"source": "openreview", "query": "knowledge graph negative sampling"},
+        {"source": "acl", "query": "knowledge graph link prediction negative sampling"}
+      ]
+    },
+    {
+      "idea_id": "uncertainty_ts_forecasting",
+      "title": "Lightweight calibrated uncertainty for multivariate time-series forecasting",
+      "domain": "time_series",
+      "difficulty": "intermediate",
+      "description": "Add a lightweight conformal calibration layer to a compact forecasting model and evaluate interval coverage under distribution shift.",
+      "research_question": "Can a lightweight conformal layer provide calibrated forecast intervals under moderate temporal shift without retraining the forecaster?",
+      "atomic_claims": ["Post-hoc calibration can improve interval coverage.", "Rolling calibration adapts to moderate temporal shift."],
+      "success_criteria": ["Report coverage, interval width, MAE, and calibration runtime.", "Separate calibration and test windows chronologically."],
+      "subproblems": ["Which conformal forecasting baselines apply?", "Which temporal-shift protocols avoid leakage?", "How are coverage and interval efficiency reported?"],
+      "search_queries": [
+        {"source": "arxiv", "query": "conformal prediction time series forecasting uncertainty"},
+        {"source": "openalex", "query": "conformal multivariate time series forecasting"},
+        {"source": "openreview", "query": "conformal time series forecasting"}
+      ]
+    }
+  ]
+}

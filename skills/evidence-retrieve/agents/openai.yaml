@@ -1,0 +1,4 @@
+interface:
+  display_name: "Retrieve evidence"
+  short_description: "Find cited evidence in an existing research corpus"
+  default_prompt: "Use $evidence-retrieve to complete the research task within its evidence and budget limits."

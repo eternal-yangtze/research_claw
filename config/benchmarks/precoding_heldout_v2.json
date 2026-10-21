@@ -1,0 +1,314 @@
+{
+  "schema_version": "precoding-v4-heldout",
+  "created_at": "2026-10-20",
+  "status": "prospective_frozen_before_execution",
+  "idea_library": "config/idea_library_vit_peft_heldout_v2.json",
+  "scope": "Small-data pretrained ViT PEFT research planning, live cache-assisted discovery through reviewed frozen specification; coding/training excluded",
+  "split_policy": "Six new compositions authored after old twelve were seen; all six fixed before any paid new run. Internal silver, not external gold.",
+  "dev_ids": [],
+  "test_ids": [
+    "h01_rank_dropout_interaction",
+    "h02_vpt_adapter_label_interaction",
+    "h03_rank_block_interaction",
+    "h04_calibration_across_peft",
+    "h05_new_datasets_transfer",
+    "h06_adapter_regularization_interaction"
+  ],
+  "pilot_ids": [
+    "h01_rank_dropout_interaction"
+  ],
+  "tracks": {
+    "A": {
+      "mode": "fixed"
+    },
+    "B": {
+      "idea_ids": [
+        "h01_rank_dropout_interaction",
+        "h02_vpt_adapter_label_interaction",
+        "h03_rank_block_interaction",
+        "h04_calibration_across_peft",
+        "h05_new_datasets_transfer",
+        "h06_adapter_regularization_interaction"
+      ],
+      "target_valid_fulltexts_per_idea": 8,
+      "min_new_unique_fulltexts": {
+        "h01_rank_dropout_interaction": 1,
+        "h02_vpt_adapter_label_interaction": 1,
+        "h03_rank_block_interaction": 1,
+        "h04_calibration_across_peft": 1,
+        "h05_new_datasets_transfer": 1,
+        "h06_adapter_regularization_interaction": 1
+      }
+    }
+  },
+  "case_expectations": [
+    {
+      "case_id": "H01",
+      "idea_id": "h01_rank_dropout_interaction",
+      "factor": "new_composition",
+      "required_methods": [
+        "lora",
+        "linear_probe"
+      ],
+      "required_fractions": [
+        0.1
+      ],
+      "required_datasets": [
+        "dtd",
+        "pets"
+      ],
+      "arm_requirements": [
+        {
+          "method": "lora",
+          "rank": 2,
+          "alpha": 2,
+          "dropout": 0,
+          "weight_decay": 0.05
+        },
+        {
+          "method": "lora",
+          "rank": 2,
+          "alpha": 2,
+          "dropout": 0.1,
+          "weight_decay": 0.05
+        },
+        {
+          "method": "lora",
+          "rank": 16,
+          "alpha": 16,
+          "dropout": 0,
+          "weight_decay": 0.05
+        },
+        {
+          "method": "lora",
+          "rank": 16,
+          "alpha": 16,
+          "dropout": 0.1,
+          "weight_decay": 0.05
+        }
+      ]
+    },
+    {
+      "case_id": "H02",
+      "idea_id": "h02_vpt_adapter_label_interaction",
+      "factor": "new_composition",
+      "required_methods": [
+        "vpt_shallow",
+        "bottleneck_adapter",
+        "linear_probe"
+      ],
+      "required_fractions": [
+        0.1,
+        1
+      ],
+      "required_datasets": [
+        "dtd",
+        "pets"
+      ],
+      "arm_requirements": [
+        {
+          "method": "vpt_shallow",
+          "prompt_length": 10
+        },
+        {
+          "method": "bottleneck_adapter",
+          "bottleneck_dim": 32
+        }
+      ]
+    },
+    {
+      "case_id": "H03",
+      "idea_id": "h03_rank_block_interaction",
+      "factor": "new_composition",
+      "required_methods": [
+        "lora",
+        "linear_probe"
+      ],
+      "required_fractions": [
+        0.25
+      ],
+      "required_datasets": [
+        "dtd",
+        "pets"
+      ],
+      "arm_requirements": [
+        {
+          "method": "lora",
+          "rank": 2,
+          "alpha": 2,
+          "target_blocks": [
+            9,
+            10,
+            11
+          ],
+          "dropout": 0
+        },
+        {
+          "method": "lora",
+          "rank": 2,
+          "alpha": 2,
+          "target_blocks": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11
+          ],
+          "dropout": 0
+        },
+        {
+          "method": "lora",
+          "rank": 16,
+          "alpha": 16,
+          "target_blocks": [
+            9,
+            10,
+            11
+          ],
+          "dropout": 0
+        },
+        {
+          "method": "lora",
+          "rank": 16,
+          "alpha": 16,
+          "target_blocks": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11
+          ],
+          "dropout": 0
+        }
+      ]
+    },
+    {
+      "case_id": "H04",
+      "idea_id": "h04_calibration_across_peft",
+      "factor": "new_composition",
+      "required_methods": [
+        "lora",
+        "vpt_shallow",
+        "bottleneck_adapter",
+        "linear_probe"
+      ],
+      "required_fractions": [
+        0.25
+      ],
+      "required_datasets": [
+        "dtd",
+        "pets"
+      ],
+      "arm_requirements": [
+        {
+          "method": "lora",
+          "rank": 8
+        },
+        {
+          "method": "vpt_shallow",
+          "prompt_length": 10
+        },
+        {
+          "method": "bottleneck_adapter",
+          "bottleneck_dim": 32
+        }
+      ],
+      "required_metrics": [
+        "nll",
+        "accuracy",
+        "macro_f1",
+        "ece_15_equal_bins"
+      ]
+    },
+    {
+      "case_id": "H05",
+      "idea_id": "h05_new_datasets_transfer",
+      "factor": "new_composition",
+      "required_methods": [
+        "lora",
+        "full_finetune",
+        "linear_probe"
+      ],
+      "required_fractions": [
+        0.25
+      ],
+      "required_datasets": [
+        "cifar100",
+        "flowers102"
+      ],
+      "arm_requirements": [
+        {
+          "method": "lora",
+          "rank": 8,
+          "alpha": 8,
+          "dropout": 0
+        }
+      ]
+    },
+    {
+      "case_id": "H06",
+      "idea_id": "h06_adapter_regularization_interaction",
+      "factor": "new_composition",
+      "required_methods": [
+        "bottleneck_adapter",
+        "linear_probe"
+      ],
+      "required_fractions": [
+        0.1
+      ],
+      "required_datasets": [
+        "dtd",
+        "pets"
+      ],
+      "arm_requirements": [
+        {
+          "method": "bottleneck_adapter",
+          "bottleneck_dim": 16,
+          "weight_decay": 0
+        },
+        {
+          "method": "bottleneck_adapter",
+          "bottleneck_dim": 16,
+          "weight_decay": 0.05
+        },
+        {
+          "method": "bottleneck_adapter",
+          "bottleneck_dim": 64,
+          "weight_decay": 0
+        },
+        {
+          "method": "bottleneck_adapter",
+          "bottleneck_dim": 64,
+          "weight_decay": 0.05
+        }
+      ]
+    }
+  ],
+  "boundary_cases": [],
+  "protocol": {
+    "token_cap": 3000000,
+    "max_plan_attempts": 4,
+    "acceptance": "All mechanical and withheld task gates, fresh successful discovery, >=8 fulltexts individually relevant to task, >=1 hash absent initial corpus, and all seven criteria pass in BOTH independent same-model review calls. Every initial failure and repair retained.",
+    "performance": "First-pass and final end-to-end success rate, supported locatable evidence, controlled comparison and constraint adherence; wall time excluded from quality.",
+    "limitations": [
+      "same-model silver reviewer correlated bias",
+      "small internal suite",
+      "no training outcomes or coding validated",
+      "new_unique means absent initial corpus; shared downloaded PDFs may be reused across tasks"
+    ]
+  }
+}

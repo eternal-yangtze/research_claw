@@ -1,0 +1,131 @@
+{
+  "schema_version": "precoding-quality-results-v41",
+  "date": "2026-10-20",
+  "domain": "Small-data pretrained ViT image classification PEFT research planning before coding",
+  "model": "gpt-6-sol",
+  "cohorts": {
+    "initial_live_compositions": {
+      "workspace": "workspace_precoding_v4_heldout",
+      "successes": 5,
+      "total": 6,
+      "first_pass_complete_workflows": 2,
+      "first_pass_plans": 3,
+      "failure_retained": "H04: metric registry and unsupported-name diagnostics absent"
+    },
+    "repaired_checkpoint_revalidation": {
+      "workspace": "workspace_precoding_v41_revalidation_live",
+      "successes": 6,
+      "total": 6,
+      "first_pass_plans": 6,
+      "real_acquisition_checkpoints_reused": true,
+      "untouched_heldout": false
+    },
+    "regression": {
+      "workspace": "workspace_precoding_v4_regression",
+      "successes": 12,
+      "total": 12,
+      "first_pass_plans": 8
+    },
+    "input_changes": {
+      "workspace": "workspace_precoding_v4_contrastive_live",
+      "successes": 4,
+      "total": 4,
+      "first_pass_plans": 2,
+      "independent_research_questions": false
+    },
+    "boundary": {
+      "workspace": "workspace_precoding_v4_boundary",
+      "successes": 4,
+      "total": 4,
+      "first_pass_plans": 4
+    }
+  },
+  "tasks": [
+    {
+      "case_id": "H01",
+      "idea_id": "h01_rank_dropout_interaction",
+      "related_fulltexts": 29,
+      "new_vs_initial": 11,
+      "planned_operations": 90,
+      "final_success": true,
+      "revalidation_plan_attempts": 1
+    },
+    {
+      "case_id": "H02",
+      "idea_id": "h02_vpt_adapter_label_interaction",
+      "related_fulltexts": 18,
+      "new_vs_initial": 9,
+      "planned_operations": 108,
+      "final_success": true,
+      "revalidation_plan_attempts": 1
+    },
+    {
+      "case_id": "H03",
+      "idea_id": "h03_rank_block_interaction",
+      "related_fulltexts": 28,
+      "new_vs_initial": 17,
+      "planned_operations": 90,
+      "final_success": true,
+      "revalidation_plan_attempts": 1
+    },
+    {
+      "case_id": "H04",
+      "idea_id": "h04_calibration_across_peft",
+      "related_fulltexts": 38,
+      "new_vs_initial": 24,
+      "planned_operations": 72,
+      "final_success": true,
+      "revalidation_plan_attempts": 1
+    },
+    {
+      "case_id": "H05",
+      "idea_id": "h05_new_datasets_transfer",
+      "related_fulltexts": 29,
+      "new_vs_initial": 20,
+      "planned_operations": 54,
+      "final_success": true,
+      "revalidation_plan_attempts": 1
+    },
+    {
+      "case_id": "H06",
+      "idea_id": "h06_adapter_regularization_interaction",
+      "related_fulltexts": 53,
+      "new_vs_initial": 34,
+      "planned_operations": 90,
+      "final_success": true,
+      "revalidation_plan_attempts": 1
+    }
+  ],
+  "evidence": {
+    "unique_relevant_fulltext_hashes": 75,
+    "new_unique_vs_original_30": 51,
+    "final_fact_citations_locatable": 14,
+    "final_fact_citations_total": 14,
+    "final_fact_citations_supported_silver": 14,
+    "evaluator_expected_fields_found_in_paid_requests": 0
+  },
+  "verification": {
+    "engineering_tests_passed": 87,
+    "full_resume_new_model_calls": 0,
+    "full_resume_new_tokens": 0,
+    "wall_time_in_quality_score": false,
+    "training_executed": false,
+    "coding_evaluated": false
+  },
+  "cost": {
+    "actual_known_tokens": 3694358,
+    "unknown_reservations": 548716,
+    "charged_including_unknown": 4243074,
+    "settled_requests": 376,
+    "unknown_usage_requests": 8,
+    "total_request_attempts": 384,
+    "original_historical_corpus_cost_excluded": true,
+    "currency_cost": null
+  },
+  "limitations": [
+    "Internal authored validation; six tasks uniformly revalidated after a runtime interface repair, not untouched external heldout tests.",
+    "Acquisition was real and per-task; revalidation reused those verified checkpoints, not six fresh second discovery runs.",
+    "Critic and final reviewer are separate calls to the same model and share correlated bias; no expert gold accuracy claim.",
+    "Planned training/test job counts are specifications; no coding or model training was executed."
+  ]
+}

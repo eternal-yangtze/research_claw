@@ -1,0 +1,3072 @@
+{
+  "measurement_date": "2026-10-20",
+  "meaning": "Historical stage-specific measurements; do not pool different judges or test sets",
+  "documents": [
+    {
+      "original_document": "README.md",
+      "sha256": "116105f670ddf2bb58730e69ff52802e8e47f91aa661be0d2a6c39d045b0b380",
+      "tables": [
+        {
+          "section": "当前能力",
+          "markdown": "| 能力 | 当前实现 |\n|---|---|\n| Agent Runtime | 真实 OpenAI-compatible LLM 调用、系统角色、工具循环、工具策略、预算和 JSONL Trace |\n| IDEA intake | 自然语言 IDEA → 受限领域、研究问题、atomic claims、成功条件、歧义和检索计划 |\n| 文献获取 | arXiv/OpenAlex/OpenReview/DBLP/Crossref/ACL/CVF 分源查询、统一论文身份、跨来源 provenance、LLM 候选筛选、公开 PDF 下载、arXiv 源码包下载 |\n| 文档摄取 | Docling OCR/表格/公式增强；公式、表格、段落独立成可追溯节点；失败时 PyMuPDF 回退；页码/bbox、原 PDF 和 sidecar |\n| 论文分析 | 基于全文 chunk 的方法、数据、实验、复现要素和 baseline 适用性分析；实质字段必须引用 chunk |\n| 分层压缩 | L0 书目卡、L1 IDEA 筛选卡、L2 复现档案、L3 子问题综合；版本、prompt hash、source hash 和缓存键均持久化 |\n| 持久化 | SQLite 中的 Task、Paper、Task-Paper、Chunk、PaperAnalysis、PaperCompression、Claim、Evidence、Run、Artifact |\n| 原有查新原型 | Claim-Prior Work Matrix 和四态初筛；仍为词项启发式，不是最终创新性判断 |\n| 混合知识检索 | FTS5/BM25 + 本地多语言 neural embedding + cross-encoder reranker + MMR；向量按模型版本和节点 source hash 缓存 |\n| 获取调度 | 有界并行 acquisition DAG；逐论文逐阶段保存状态、输入 hash、输出、尝试次数和错误，可从 checkpoint 恢复 |"
+        }
+      ],
+      "numeric_context": [
+        {
+          "section": "ResearchOps Agent",
+          "text": "2026-10-20 已新增四个项目 Skills：文献获取、文档入库、已有库检索取证、coding 前规划评审。"
+        },
+        {
+          "section": "ResearchOps Agent",
+          "text": "真实选技/执行、成本对照及失败见 [Skills 实测](docs/SKILLS_V1_RESULTS.md)。"
+        },
+        {
+          "section": "ResearchOps Agent",
+          "text": "新对话或继续实验请先读 [route2.md](route2.md)：包含最新能力、完整流程、实测结果、工作区位置、恢复命令和后续路线。[文档索引](docs/README.md) 区分当前指南与历史记录。"
+        },
+        {
+          "section": "ResearchOps Agent",
+          "text": "公式自动核验v2已接入正式PDF入库、获取报告、知识库与规划证据Gate：支持有界静态宏、"
+        },
+        {
+          "section": "ResearchOps Agent",
+          "text": "向量/粗体诊断及同版本源码恢复。三篇真实论文11公式中严格一致4个，另恢复4个，3个保持未解决；"
+        },
+        {
+          "section": "ResearchOps Agent",
+          "text": "金标准确率继续留空。124项回归通过；这是原解析产物重放，无新OCR/收费模型调用。"
+        },
+        {
+          "section": "ResearchOps Agent",
+          "text": "纯文本回退不会当作公式已通过，完整结果见 [公式v2](docs/FORMULA_AUTOMATION_V2.md)。"
+        },
+        {
+          "section": "ResearchOps Agent",
+          "text": "2026-10-20 补充无 CUDA 的改进路径：多查询融合、CPU 神经重排、按内容增量缓存、逐字核对证据卡和研究蓝图，接入 `plan-study --retrieval-strategy cpu`，旧路径保留为 `legacy`。银标作为临时主要评测参考，金标接口保留。用法和范围见 [CPU 路径](docs/RAG_CPU_USAGE.md)，真实对照与扩库质量结果见 [评测报告](docs/RAG_CPU_V3_RESULTS.md)。"
+        },
+        {
+          "section": "ResearchOps Agent",
+          "text": "进一步新增 `plan-study --retrieval-strategy fusion`：保留旧首篇、合并两路候选、按原文重排，保留机制上下文并加入覆盖/引用检查。仍无需 CUDA，增加远程 API 调用；默认暂为 legacy。实现和命令见 [融合用法](docs/RAG_FUSION_USAGE.md)，全部升降与费用见 [融合结果](docs/RAG_FUSION_V1_RESULTS.md)。"
+        },
+        {
+          "section": "ResearchOps Agent",
+          "text": "融合的六IDEA/12问开发对照已完成：预定七项总体指标相对旧方案六升一平，最终召回42.89%、排序0.749；共同匿名银标方案可用性4.00/4、原文充分支持事实50/52。109项回归和离线审计通过。扩库旧证据召回仍触发告警，且单题可退步；这些是同领域开发银标结果，不是外部测试或训练结论。"
+        },
+        {
+          "section": "ResearchOps Agent",
+          "text": "2026-10-20 新增同领域多 IDEA 的 coding 前规划与评测：自然语言 `plan-study` 入口、按研究问题变化的 v2 实验契约、共享语料 RAG、独立银标裁判及持久化 token 上限。用法见 [多 IDEA 评测指南](docs/PRECODING_BENCHMARK.md)。这批新契约的终点在 coding 前，v1 Coding Agent 尚未适配全部新比较组。"
+        },
+        {
+          "section": "ResearchOps Agent",
+          "text": "当前已接通 IDEA 理解、文献获取、神经混合检索、30 篇分层综合、LLM 银标评测、数据集获取和实验规格冻结。新增 TaleClaw 派生的 Coding Agent：基于混合 RAG 证据生成计划、调用 LLM 编写代码、在 Docker 中独立验证、反馈修复与断点恢复。数据与实验执行适配器目前覆盖图像分类；其他领域需继续扩展。工程验收通过不能作为研究假设成立的证据。"
+        },
+        {
+          "section": "ResearchOps Agent",
+          "text": "2026-10-19 最新真实结果：同一冻结 ViT 任务的两个独立空目录起点，分别在恢复和一次任务重规划后，以 103,189 / 102,028 编码 token 通过 22/22 项外部检查；均在各自 120,000 token 预算内。完整回归 71/71。它们尚不能证明任意项目无人干预的稳定成功率，四条开发谱系合计消耗 318,722 编码 token，失败记录保留。详见 [最新从零编码实测](docs/CODING_SCRATCH_RUN_20261019.md)；[早期模板运行](docs/CODING_AGENT_RUN_20261019.md) 作为历史记录。"
+        },
+        {
+          "section": "两个硬边界",
+          "text": "1. PDF 公式不能承诺 100% 正确识别。所有 PDF 保留原文件定位和解析器信息；PDF 默认标记为 `review_required`，需要人工回看。"
+        },
+        {
+          "section": "两个硬边界",
+          "text": "2. 一次实验超过 baseline 不能宣布成功。后续实验阶段必须重跑、从 Artifact 重算指标、做对照与泄漏检查。"
+        },
+        {
+          "section": "配置与运行",
+          "text": "  --max-queries 2 --limit-per-query 5 --max-downloads 1 --pdf-parser pymupdf `"
+        },
+        {
+          "section": "配置与运行",
+          "text": "  \"复现并评估 Anomaly Transformer（arXiv:2110.02642），解析方法并生成科研与 Coding 计划\""
+        },
+        {
+          "section": "配置与运行",
+          "text": "较长 IDEA 可以放在 UTF-8 文本文件中："
+        },
+        {
+          "section": "配置与运行",
+          "text": "对批量研究生成的 30--50 篇固定语料执行证据约束的 LLM 银标评测："
+        },
+        {
+          "section": "配置与运行",
+          "text": "  silver-evaluate --idea-id vit_peft_small_data --max-papers 40"
+        },
+        {
+          "section": "配置与运行",
+          "text": "银标优先包含 30 篇已下载解析的筛选语料，再补足候选论文。每篇判断按需读取摘要及"
+        },
+        {
+          "section": "配置与运行",
+          "text": "- 权威元数据、文档节点、L0/L1/L2/L3 压缩缓存和分析状态：`workspace/researchops.db`"
+        },
+        {
+          "section": "配置与运行",
+          "text": "  --corpus ..\\papers1\\knowledge_base"
+        },
+        {
+          "section": "中断后保留原代码、调用记录和累计预算：",
+          "text": "从零模式关闭实现模板，使用单文件任务 DAG、模块级 Docker 检查、失败反馈与精确局部修复，最后执行完整外部验收。默认总生成预算 12 万 token，请求前预留，预算不足即停止。完整机制见 [Coding Agent](docs/CODING_AGENT.md)，参考项目的阅读与借鉴映射见 [参考审阅](docs/CODING_REFERENCES_20261019.md)，真实成功或失败记录见 [运行记录](docs/CODING_SCRATCH_RUN_20261019.md)。"
+        }
+      ]
+    },
+    {
+      "original_document": "route2.md",
+      "sha256": "16a24292c46db5a1da5c373c97b3e7f4a86a5e7e8c473aa2fed705b9bc3474dc",
+      "tables": [
+        {
+          "section": "2. 整体流程与完成程度",
+          "markdown": "| 阶段 | 当前状态与实际限制 |\n| --- | --- |\n| 新 IDEA 理解与检索 | 已实现真实 LLM 调用和分源查询，非固定单一提示词 |\n| 多源论文获取 | 七个连接器存在；元数据源未必提供全文，公开站点可能限流/403/不可达 |\n| 解析与知识库 | 真实 PDF、解析节点、SQLite、本地 neural embedding 均已持久化；不是只保存摘要 |\n| 分层压缩与综合 | 已实测 30 篇 L1、6 篇 L2、18 个 L3 map、3 次 reduce；L3 当前已消费混合 RAG 节点 |\n| 评测与验收 | 旧40条论文银标保留；新增12 IDEA规划/4联网/4边界首轮实测，成功和失败见本轮报告；人工金标未完成 |\n| 数据与冻结规格 | 五个图像数据集已自动获取并校验，DTD/Pets 作为主实验；其他领域需增加适配器 |\n| Coding Agent | 模板模式和关闭模板的从零模式均有通过记录；从零模式尚未证明无人干预的稳定成功率 |\n| 正式研究结果 | 尚无完整预训练、多种子结果；`research_success` 保持 `null` |"
+        },
+        {
+          "section": "2.1 当前唯一完成规模化链条实测的 IDEA：内容、分析与最终拆解",
+          "markdown": "| L2 深读论文 | 在该 IDEA 中的用途及限制 |\n| --- | --- |\n| *Visual Prompt Tuning* | 直接提供 prompt-based PEFT 比较依据；仍需明确 shallow/deep 变体和训练设置 |\n| *Collaborative Low-Rank Adaptation for Pre-Trained Vision Transformers* | 低秩方法与正则化启发；部分公式/细节不完整，未作为已复现 CLoRA 实现 |\n| *Structured Hyperedge Adaptation for Parameter-Efficient Fine-Tuning of Vision Transformers* | adapter 方法族与扩展思路；不是已完整实现的 HyperAdapter |\n| *LangVision-LoRA-NAS: Neural Architecture Search for Variable LoRA Rank in Vision Language Models* | rank 选择启发；VLM 场景，不能直接推断普通图像分类结果 |\n| *Vision-Language Model Fine-Tuning via Simple Parameter-Efficient Modification* | 参数更新范围等比较启发；VLM 方法不能直接视作同协议分类基线 |\n| *AViT: Adapting Vision Transformers for Small Skin Lesion Segmentation Datasets* | 小数据评估与资源取舍背景；任务为分割，其损失不能直接用于本分类实验 |"
+        },
+        {
+          "section": "2.1 当前唯一完成规模化链条实测的 IDEA：内容、分析与最终拆解",
+          "markdown": "| 科研阶段 | 最终拆解 | 任务数 | 是否已正式执行 |\n| --- | --- | ---: | --- |\n| 验证调参 | 2 数据集 × 5 方法 × 2 LR，100% 训练子集、seed42，仅验证集选 LR | 20 | 否 |\n| 主实验 | 2 数据集 × 5 方法 × 3 标签比例 × 3 seeds | 90 | 否 |\n| 消融 | 2 数据集 × 3 设置〔rank2/dropout0、rank16/dropout0、rank8/dropout0.1〕× 3 seeds，25% 标签；rank8/dropout0 主实验为对照 | 18 | 否 |\n| 合计 | 先 smoke → 单数据集单种子 pilot → 调参 → 主实验 → 消融 | **128** | 仅验证了模拟调度；未完成128次真实训练 |"
+        },
+        {
+          "section": "2.1 当前唯一完成规模化链条实测的 IDEA：内容、分析与最终拆解",
+          "markdown": "| 任务 | 依赖 | 输出 | 核心验收 |\n| --- | --- | --- | --- |\n| metrics | 无 | `metrics.py` | accuracy/macro F1/ECE，与独立计算一致 |\n| models | 无 | `models.py` | 五方法前后向、冻结、独立 Q/V LoRA、零初始化保持输出 |\n| training | metrics、models | `train.py` | manifest/subset hash、真实图像训练、checkpoint/RNG/optimizer/scheduler 恢复、测试集隔离 |\n| dispatch | training | `run_experiment.py` | 任务顺序、验证 LR 选择、消融、恢复与结果汇总 |\n| tests | training、dispatch | `tests/test_experiment.py` | 单元测试与接口检查；宿主外部验证器独立于生成测试 |\n| documentation | tests | `README.md` | 运行说明、预算/恢复、smoke与正式研究区别 |"
+        },
+        {
+          "section": "2.2 新编好的低成本同领域 IDEA 库",
+          "markdown": "| 编号 | idea_id | 不同的研究因素 | 划分 |\n| --- | --- | --- | --- |\n| V01 | `vit_rank_tradeoff` | LoRA rank 2/8/16 的精度/参数取舍 | dev、试点、联网 |\n| V02 | `vit_lora_dropout` | 10% 标签下 branch dropout 0/0.1 | dev |\n| V03 | `vit_lora_block_scope` | 最后3/6层与全部12层的适配范围 | test |\n| V04 | `vit_vpt_prompt_length` | shallow VPT prompt数 5/10/20 | dev、试点、联网 |\n| V05 | `vit_adapter_width` | bottleneck宽度16/32/64 | dev |\n| V06 | `vit_lora_weight_decay` | AdamW decay 0/0.05 | test、联网 |\n| V07 | `vit_low_label_lora_vs_full` | 10%标签 LoRA/full fine-tuning主比较 | test |\n| V08 | `vit_label_fraction_interaction` | 25%/100%标签与方法收益的交互 | test |\n| V09 | `vit_cross_dataset_gain` | DTD/Pets上的 LoRA/linear probe增益 | test |\n| V10 | `vit_vpt_vs_adapter` | 相同标签/调参预算下 prompt/adapter比较 | test |\n| V11 | `vit_calibration_comparison` | 校准 ECE/NLL与准确率的不同取舍 | test、联网 |\n| V12 | `vit_rank_selection_policy` | 每数据集单独选rank与共享rank的验证策略 | test |"
+        },
+        {
+          "section": "3. 目录导航：从哪里读代码和找材料",
+          "markdown": "| 路径（相对该工作区） | 内容 |\n| --- | --- |\n| `researchops.db` | 论文身份、文档节点、神经向量、L0–L3 压缩缓存、分析与任务状态 |\n| `artifacts/papers/` | 已下载原始 PDF |\n| `artifacts/sources/` | arXiv 源码归档，保存而不自动执行 |\n| `artifacts/parsed/` | 解析 sidecar、节点及定位 |\n| `artifacts/analyses/` | 带引用的论文方法、复现与基线适用性分析 |\n| `artifacts/batch_research_*.json` | 候选、筛选、DAG、批量综合与原始统计 |\n| `artifacts/syntheses/` | 多论文综合，包括后续接通混合 RAG 的综合版本 |\n| `artifacts/evaluation/` | 银标、人工复核模板、离线/联网审计报告 |\n| `datasets/` | 五个数据集的下载源文件、解码结果、manifest、去重和固定划分 |\n| `artifacts/experiments/` | 数据推荐、准备报告、不可变冻结实验规格 |\n| `artifacts/coding/` | 各版不可变编码计划和 benchmark 计划 |\n| `coding/<plan_id>/` | 生成项目、模型调用、累计预算、checkpoint、逐阶段验证与最终报告 |\n| `runs/`、`source_probe/` | Agent trace 与联网下载核查材料 |"
+        },
+        {
+          "section": "RAG 与银标指标",
+          "markdown": "| 检索方法 | Hit@1 | Hit@5 | MRR@10 |\n| --- | ---: | ---: | ---: |\n| BM25 | 0.625 | 0.750 | 0.6875 |\n| 本地 dense | 0.375 | 0.625 | 0.4826 |\n| BM25 + dense + reranker + MMR | 0.750 | 0.875 | 0.8056 |"
+        },
+        {
+          "section": "编码与独立验收",
+          "markdown": "| 开发谱系 | 累计请求 | 累计编码 token | 实际结果 |\n| --- | ---: | ---: | --- |\n| `scratch_a`（含恢复） | 4 | 43,173 | 训练修至 11/12，后续调用未获任务预算准入，停止 |\n| `scratch_b` | 7 | 70,332 | 训练 12/12；调度达到尝试上限后停止 |\n| `scratch_c → scratch_c_replanned` | 10 | 103,189 | 同一 12 万额度内，恢复/一次任务重规划后 22/22 |\n| `scratch_final → scratch_final_replanned` | 11 | 102,028 | 第二个独立空目录起点，恢复/一次测试任务重规划后 22/22 |"
+        }
+      ],
+      "numeric_context": [
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "**最新：首批四个Skills及科研agent调用入口已实现（2026-10-20）**："
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "12项中英文开发路由全对，两个负例零误触发；四项真实执行及入库→检索串联通过。"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "规划首次存在职责交接问题，修复后经两版方案通过机械10/10、初审与独立终审，"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "返回ready_for_coding；未coding/训练。133项回归、18份调用工件审计通过。"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "按需首轮输入少68.7%，成功案例平均token少57.4%，但含断连预留后成本未获优势。"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "本轮已知实际662924token、未知预留152390，总账815314含所有保留失败和重试。"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "[Skills实测](docs/SKILLS_V1_RESULTS.md)，接口与命令见 [Skills指南](docs/SKILLS.md)。"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "**最新：公式宏/向量与自动接入v2已实现（2026-10-20）**：金标按用户要求只预留。"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "三篇原有真实论文/三页11区域通过正式入口重放：严格源码一致仍4/11；另恢复C-LoRA四处粗体，"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "源码一致或恢复合计8/11（72.73%），剩余2争议/1待核验，不称识别准确率。三篇续跑缓存均命中，"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "8个公式可带银标限定进入规划、3个过滤；11个公式单独支撑复现的门控探测全部被拒绝。"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "124项完整回归通过，缓存补强后相关21项再次通过；本轮无新OCR、训练或付费端到端评测。"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "下一步可封装成熟模块为Skills，本轮未封装。详见 [公式v2实现和真实结果](docs/FORMULA_AUTOMATION_V2.md)。"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "**最新：两路融合已实现并完成真实开发对照（2026-10-20）**："
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "同一6 IDEA/12问、94篇语料，预定七项总体指标相对旧方案六升一平："
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "Recall 42.21%→42.89%、MRR 1.000持平、nDCG 0.690→0.749；本轮共同匿名银标"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "正确性3.83→4.00、覆盖3.58→3.83、方案可用性2.42→4.00、事实充分支持"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "37/49（75.51%）→50/52（96.15%）。完整CPU控制组与融合在同一新裁判中评审，"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "不能拼接上一轮分数。相对CPU新方案七项均提高，但单题仍有退步（R04a覆盖4→2）。"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "87→89→92→94整体排序提高，固定旧证据排序下降回到容差内；旧证据召回最大下降"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "4.11个百分点仍触发告警，未解决任意长期扩库不退化。有无历史最终三检索指标相同。"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "公开两题最终2/2且方案首版通过，期间一道两次服务超时；109项回归、离线审计通过。"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "本轮实际1,631,010 token、未知预留225,161，累计1,856,171，四次HTTP524均留档。"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "详见 [融合全部真实结果](docs/RAG_FUSION_V1_RESULTS.md)、[用法](docs/RAG_FUSION_USAGE.md)。"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "**最新：无 CUDA 的 RAG/研究方案改进已实现并实测（2026-10-20）**：先读参考项目"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "默认仍为 `legacy`：新检索 nDCG 0.690→0.703，但 Recall 42.21%→41.65%、"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "MRR 1.000→0.917，尚无稳定检索优势。六 IDEA/12 问同轮匿名银标对照，"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "完整新路径方案可用性2.83→4.00/4、原文充分支持事实65.31%→74.42%，"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "问题覆盖3.83→3.50；仅改检索设计评分2.75，收益主要来自证据组织/规划修订。"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "87→89→92→94篇重放真实新增文献，整体排序最终提高，但固定旧证据排序保留"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "均触发退化阈值；不能称永久扩库不退化。530段新增编码，7227旧向量全部一致。"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "公开规划两题旧/新最终均2/2通过，新路径首版1/2；104项回归和离线审计通过。"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "已知实际1,178,647 token、未知预留108,582，总计1,287,229，失败原文/账本保留。"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "完整结果与限制见 [CPU真实对照](docs/RAG_CPU_V3_RESULTS.md)、[用法](docs/RAG_CPU_USAGE.md)。"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "**最新：P1公式核验首轮已实现（2026-10-20）**：独立命令validate-formulas，"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "版本产物保留均已接通。三篇论文各一页，11个候选全部可定位，源码佐证2/11→4/11；"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "ExPLoRA三处紧裁剪重识别将该页佐证2/5提升到4/5，不训练模型、不调用收费API。"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "最终6处争议、1处待核验；源码银标不等于金标准确率，公共金标和跨论文测试仍待补。"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "源码版本丢弃问题已修复；100项回归及公开CLI实跑通过。尚未全任务自动执行/接入Gate，表格/图形与Skills未完成。"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "**最新：增量文献与神经RAG对照评测已完成（2026-10-20）**：6个新增idea、12个问题，"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "6题真实搜索、4题新增7篇全文，87→94篇、7757个按页文本段。全部全文盲评，原始查询与"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "通用查询规划复验均保留。复验关键词/完整神经流程前十找回率38.54%/42.21%，排序质量"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "0.655/0.690，完整流程12/12首篇相关、重复排序12/12一致。事实原文支持覆盖73.91%/81.63%；"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "知识正确性评分均3.83/4，完整流程设计评分3.58低于关键词3.92，不宣称研究设计提升。"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "增量索引21.92秒、全量编码278.83秒，约12.7倍；神经查询本身更慢。"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "已接入公开plan-study查询规划，93项回归通过、两版离线审计均通过。"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "本轮已知实际4,455,294 token，未知预留57,999，合计4,513,293；旧库历史成本不重计。"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "**最新：P0领域内质量验证已完成（2026-10-20）**：时间不作为性能得分，coding/训练排除。"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "旧十二题回归12/12（首版8/12）、输入变化4/4、边界4/4；新六题原轮5/6，保留校准"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "复验6/6且均首版通过。复用各题已真实联网完成的获取断点，重新规划/编译/双评审，"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "不称冷启动或未触碰的外部测试。六题共75篇不同相关全文（51篇相对原30篇新增），"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "最终14/14处事实引用可定位且获银标支持。87项测试通过，完整复验续跑新增调用0。"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "本轮已知实际3,694,358 token；八次网络阻断未知预留548,716单列，合计4,243,074。"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "原始结果在 `workspace_precoding_v4_heldout`，统一复验在 `workspace_precoding_v41_revalidation_live`。"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "实现、限制和全部证据见 [最终实测](docs/PRECODING_V4_RESULTS.md)、"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "[原轮协议](docs/PRECODING_V4_PROTOCOL.md) 与 [统一复验协议](docs/PRECODING_V41_PROTOCOL.md)。"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "下文“最新 P0 实施”段落保留首轮历史结果，以便对照；最新结论以上段为准。"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "更新日期：2026-10-20。本文件是新对话的首读入口，记录当前代码、真实运行证据和下一阶段的起点。旧的 `../route1.md` 是设计历史；历史报告中的“尚未接入 Coding Agent”“三轮从零编码均失败”等描述只对应当时版本，当前状态以本文和最新原始报告为准。"
+        },
+        {
+          "section": "ResearchOps 项目交接与后续实验路线",
+          "text": "**最新 P0 实施**：TODO2 的问题1/2已实现并完成首轮测评。新增自然语言 `plan-study`、任务驱动 v2 契约、共享语料 A/B 评测、独立银标与累计预算。冻结 A 轨道机械8/12、银标/端到端6/12（保留测试4/8）；接口修复后复用原输出的机械重放12/12，不能替换为银标100%。联网 B 为1/4：一题取得12篇有效全文（含1篇新全文）并全链通过，一题获取不足，两题预算阻塞。边界安全阻塞4/4、严格银标1/4。全轮已知253,176 token，计未知预留后290,385/300,000，回归83/83。详见 [真实运行报告](docs/PRECODING_RUN_20261020.md) 与 [用法](docs/PRECODING_BENCHMARK.md)。论文交叉核验、Skills 和真实训练未在本轮实施。"
+        },
+        {
+          "section": "1. 项目目标与边界",
+          "text": "- 公式/OCR 不能保证 100% 准确；保留原 PDF、页码、bbox、解析器和节点引用。当前 30 篇规模实验使用 PyMuPDF，尚未做公式准确率金标评测。"
+        },
+        {
+          "section": "2. 整体流程与完成程度",
+          "text": "  → L0 / L1 / L2 / L3 分层压缩、版本与 hash 缓存"
+        },
+        {
+          "section": "2. 整体流程与完成程度",
+          "text": "  → BM25 + dense + cross-encoder reranker + MMR 混合 RAG"
+        },
+        {
+          "section": "2. 整体流程与完成程度",
+          "text": "  → 30 篇 L1 fan-in → 6 篇 L2 shortlist → 分子问题 L3 map-reduce"
+        },
+        {
+          "section": "2. 整体流程与完成程度",
+          "text": "  → 冻结实验规格 → 带接口、依赖和预算的 Coding Plan v5"
+        },
+        {
+          "section": "2.1 当前唯一完成规模化链条实测的 IDEA：内容、分析与最终拆解",
+          "text": "这里的“唯一”指已完成 30 篇文献 → 银标 → 数据 → 冻结规格 → 编码工程验收的主案例。其他早期论文获取演示存在，但没有同样完整的规模化验收；下节新 IDEA 库也尚未评测。"
+        },
+        {
+          "section": "2.1 当前唯一完成规模化链条实测的 IDEA：内容、分析与最终拆解",
+          "text": "1. **将宽泛想法拆为可检验问题**：比较 LoRA 与 full fine-tuning 的准确率/参数量；考察 rank 和正则化；用 linear probe、VPT、adapter 作为方法族参照；同时要求 accuracy、macro F1、校准误差、可训练参数、时间和显存等指标。形成三个文献子问题：方法与训练目标、数据与评价协议、效率/校准取舍和局限。"
+        },
+        {
+          "section": "2.1 当前唯一完成规模化链条实测的 IDEA：内容、分析与最终拆解",
+          "text": "2. **检索、筛选并取得原文**：批量从 115 篇候选中形成 30 篇 L1 筛选语料，实际取得并解析 30 篇全文，选 6 篇进入 L2，再做 18 个 L3 map 和 3 个子问题 reduce。原始 [批量报告](workspace_batch_vit_v2/artifacts/batch_research_ea4fffe07ca46a653072.json) 保存了查询、论文身份、筛选理由和获取状态。"
+        },
+        {
+          "section": "2.1 当前唯一完成规模化链条实测的 IDEA：内容、分析与最终拆解",
+          "text": "3. **区分直接基线与启发性论文**：6 篇深读对象见下表。跨任务论文提供启发，不能把其分割/VLM 结果直接充当图像分类基线成绩。"
+        },
+        {
+          "section": "2.1 当前唯一完成规模化链条实测的 IDEA：内容、分析与最终拆解",
+          "text": "4. **综合后的判断是 `refine`**：[混合 RAG 综合](workspace_batch_vit_v2/artifacts/syntheses/synthesis_ab83ee83a96ff2594b4c.json) 的 `final_synthesis` 支持继续比较这些方法族，但没有建立统一可执行配方、可比性能排名或轻量正则化必然有效的证据。校准结果、部分公式和超参数仍缺失。不能把“方法被提到”说成“已经完整复现”。"
+        },
+        {
+          "section": "2.1 当前唯一完成规模化链条实测的 IDEA：内容、分析与最终拆解",
+          "text": "5. **将不充分设定明确为受控实验提案**：选择可取得且互补的 DTD/Pets，不把其固定划分等同于 VTAB-1K；方法位置、初始化、rank、dropout、优化器和成功规则由实验契约明确固定，标记为 Agent 提出的比较设计。它不是逐字照搬某一篇论文的复现，也不是绕过缺失证据去宣称完整论文配方已知。"
+        },
+        {
+          "section": "2.1 当前唯一完成规模化链条实测的 IDEA：内容、分析与最终拆解",
+          "text": "6. **银标与数据验收后冻结**：40 条改进银标通过既定门槛，五个数据集已验证，DTD/Pets 用作主实验。准备报告状态为 `ready_for_coding`；人工金标仍为 0。编码计划消费冻结规格与引用证据，最终完成下面的科研任务矩阵和六模块工程拆分。"
+        },
+        {
+          "section": "2.1 当前唯一完成规模化链条实测的 IDEA：内容、分析与最终拆解",
+          "text": "**最终冻结的科研任务规格**：见 [冻结规格 JSON](workspace_batch_vit_v2/artifacts/experiments/frozen_vit_peft_small_data_fb3973e45e9896128a5a.json)。"
+        },
+        {
+          "section": "2.1 当前唯一完成规模化链条实测的 IDEA：内容、分析与最终拆解",
+          "text": "- Backbone：timm 的 `vit_base_patch16_224.augreg_in21k_ft_in1k`，正式模式需固定预训练权重；方法之间共享相同初始化策略、224 输入和预处理。"
+        },
+        {
+          "section": "2.1 当前唯一完成规模化链条实测的 IDEA：内容、分析与最终拆解",
+          "text": "- 主数据：DTD（47 类）与 Oxford-IIIT Pet（37 类）；复用已校验 manifest，训练比例 10%/25%/100%，固定划分，随机种子 42/43/44。"
+        },
+        {
+          "section": "2.1 当前唯一完成规模化链条实测的 IDEA：内容、分析与最终拆解",
+          "text": "- 五种方法：linear probe（仅分类头）；full fine-tuning（全参数）；LoRA（attention Q/V 独立低秩更新，rank=8、alpha=8、dropout=0）；VPT-shallow（10 个 prompt）；post-MLP residual bottleneck adapter（宽度64）。后四个具体设置均有明确契约，不能模糊地混合不同论文变体。"
+        },
+        {
+          "section": "2.1 当前唯一完成规模化链条实测的 IDEA：内容、分析与最终拆解",
+          "text": "- 正则化的落地：基础 AdamW weight decay=0.05，LoRA rank/dropout 作受控消融；本阶段没有凭空实现一个未定义的新颖正则项，也没有完整扫描所有 weight decay 强度。"
+        },
+        {
+          "section": "2.1 当前唯一完成规模化链条实测的 IDEA：内容、分析与最终拆解",
+          "text": "- 训练：交叉熵、有效 batch 32、最多20 epoch、2 epoch warmup+cosine、验证 accuracy 早停/选 checkpoint；学习率只用验证集选择，同分取较小 LR。测试集不参与调参。"
+        },
+        {
+          "section": "2.1 当前唯一完成规模化链条实测的 IDEA：内容、分析与最终拆解",
+          "text": "- 结果：accuracy、macro F1、15-bin ECE、可训练参数、时间、CUDA 峰值显存（CPU 缺失时明确 null），按数据集/比例/种子保留结果并汇总不确定性。"
+        },
+        {
+          "section": "2.1 当前唯一完成规模化链条实测的 IDEA：内容、分析与最终拆解",
+          "text": "- 预先固定的主判断：100% 标签时，两个数据集上 LoRA 的平均 accuracy 均距 full fine-tuning 不超过 0.02，且可训练参数比不超过0.10；否则报告混合或不支持。该阈值是实验设计选择，不是论文已有结论。"
+        },
+        {
+          "section": "2.1 当前唯一完成规模化链条实测的 IDEA：内容、分析与最终拆解",
+          "text": "**交给 Coding Agent 的最终工程拆解**：见 [最终不可变 Coding Plan v5](workspace_batch_vit_v2/artifacts/coding/benchmark_scratch_final_replanned_20261019.json) 的 `execution.tasks`，不能与上面的128个训练 job 混为一谈。"
+        },
+        {
+          "section": "2.1 当前唯一完成规模化链条实测的 IDEA：内容、分析与最终拆解",
+          "text": "这些阶段在全局120,000 token限制内分配任务预算，并非每个模块额度相加得到总预算。最新成功延续在测试任务上额外分配两次机会，总尝试上限由3变5，但继承了原花费。最终项目 **6/6 模块完成、22/22 外部 Gate、11次调用、102,028 token**。这一结果是工程验收；正式研究假设仍未判断。项目和报告入口见第4节。"
+        },
+        {
+          "section": "2.2 新编好的低成本同领域 IDEA 库",
+          "text": "新库为 [config/idea_library_vit_peft_v1.json](config/idea_library_vit_peft_v1.json)，绝对地址："
+        },
+        {
+          "section": "2.2 新编好的低成本同领域 IDEA 库",
+          "text": "D:\\my_coach\\new_agent\\researchops_mvp\\config\\idea_library_vit_peft_v1.json"
+        },
+        {
+          "section": "2.2 新编好的低成本同领域 IDEA 库",
+          "text": "它保留 `idea-library-v1` 输入格式，每项包含中英文问题说明、可检验假设、评价要求、子问题和2条初始检索式。原有5项跨领域库不覆盖。"
+        },
+        {
+          "section": "2.2 新编好的低成本同领域 IDEA 库",
+          "text": "评测方清单位于 [config/benchmarks/precoding_v1.json](config/benchmarks/precoding_v1.json)：包含任务划分、4个边界任务、4组成对约束变化检查、主指标和300k全链token预算建议。**评测判据文件不能交给规划模型或进入RAG知识库**，避免把标准答案当文献证据。[使用说明](config/benchmarks/README.md)解释两类文件的区别。"
+        },
+        {
+          "section": "2.2 新编好的低成本同领域 IDEA 库",
+          "text": "省token方式：共享30篇既有全文及通用方法卡、索引和数据manifest；每题只做少量独立取证、规划与评审，不能沿用旧题的相关性结论。先测V01/V04成本，12题在固定语料上评测，选4题另做缓存辅助的联网验收。联网轻量目标是每题8篇有效全文，两个测试题还需取得至少1篇在整轮开始前未入库的相关全文；这些目标是新评测计划，不冒称每题实测了30篇。"
+        },
+        {
+          "section": "2.2 新编好的低成本同领域 IDEA 库",
+          "text": "**12题及4个边界任务已在独立工作区实测，另有4个联网任务成功/失败记录。** 已新增共享runner、自然语言入口与 v2 参数化契约，支持NLL、选层、逐组超参数和共享rank策略；原始分数与接口修复后的重放分别保存，不覆盖失败。不对12题逐一重跑旧30篇流水线，也不复用旧128-job规格冒充多任务通过。详见 [本轮报告](docs/PRECODING_RUN_20261020.md)。"
+        },
+        {
+          "section": "3. 目录导航：从哪里读代码和找材料",
+          "text": "├── route2.md                  # 本交接文件"
+        },
+        {
+          "section": "3. 目录导航：从哪里读代码和找材料",
+          "text": "├── config/                    # 5 个 IDEA + 原始种子 IDEA"
+        },
+        {
+          "section": "3. 目录导航：从哪里读代码和找材料",
+          "text": "└── workspace*/                # 11 个研究工作区，保留原位置"
+        },
+        {
+          "section": "3. 目录导航：从哪里读代码和找材料",
+          "text": "研究材料主要集中于 `workspace_batch_vit_v2/`，本次盘点约 8.01 GiB："
+        },
+        {
+          "section": "文献、知识库和数据集",
+          "text": "- IDEA 库含 5 个可行课题：ViT 小样本参数高效微调、掩码时间序列分类、稀疏图时间序列异常检测、知识图谱负采样、时间序列预测区间校准。当前规模实验使用 `vit_peft_small_data`。"
+        },
+        {
+          "section": "文献、知识库和数据集",
+          "text": "- 批量报告 `workspace_batch_vit_v2/artifacts/batch_research_ea4fffe07ca46a653072.json`：115 篇候选，实际下载并解析 30 篇，30 篇 L1 的输入估计约 9,454 token，6 篇 L2，18 次 L3 map、3 次 reduce。该 token 数是输入估计，不是整条链的花费。"
+        },
+        {
+          "section": "文献、知识库和数据集",
+          "text": "- 材料审计：30/30 篇 PDF/解析/节点一致；14,315/14,315 个向量来源 hash、维度和数值有效；银标引用 87/87 可定位。这些是完整性指标，不能充当语义正确率。"
+        },
+        {
+          "section": "文献、知识库和数据集",
+          "text": "- 五个数据集：CIFAR-10、CIFAR-100、Flowers-102、Oxford-IIIT Pet、DTD，合计 141,178 个样本重新解码校验。排除 38 个完全重复样本后，有效划分间相同像素重叠为 0，官方测试集保留；未证明不存在近重复。"
+        },
+        {
+          "section": "文献、知识库和数据集",
+          "text": "- 既有 DAG 恢复核查复用 10/10 节点，新增下载/执行为 0。它验证缓存恢复，不是新进行的断电故障注入。"
+        },
+        {
+          "section": "文献、知识库和数据集",
+          "text": "- 一次联网快照：检索 6/7 源可用；arXiv、ACL、CVF 的首个候选实际下载成功，OpenAlex/OpenReview 首条无直接 PDF，DBLP 返回非 JSON，Crossref 首条 PDF 403。这不是长期下载稳定率。"
+        },
+        {
+          "section": "RAG 与银标指标",
+          "text": "8 道固定找论文诊断查询，在 30 篇真实全文上得到："
+        },
+        {
+          "section": "RAG 与银标指标",
+          "text": "本地模型为 `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`，reranker 为 `cross-encoder/mmarco-mMiniLMv2-L12-H384-v1`。向量用于召回原文/压缩节点，交给 LLM 的是带引用文本，不是把向量数字直接塞入 prompt。"
+        },
+        {
+          "section": "RAG 与银标指标",
+          "text": "40 条改进后的 LLM 银标：nDCG@10=0.7633、nDCG@30=0.8740、6 篇 shortlist precision=1.0、recall=0.1579、证据引用率=1.0，通过银标门槛。证据：`artifacts/evaluation/silver_report_vit_peft_small_data_caeb3c02fc37.json`，该轮 157,559 token；`59d209c7101d` 报告为缓存复用，新增 token=0，不能据此说银标总成本为零。早期 `7751451457d1` 版本门槛未过、消耗 234,026 token，记录保留。"
+        },
+        {
+          "section": "RAG 与银标指标",
+          "text": "银标中 38/40 条相关，难例和负例不足；8 查询检索诊断也很小。上述分数不是人工金标、LitQA 成绩或通用科研准确率。人工金标实际完成数仍为 0。"
+        },
+        {
+          "section": "编码与独立验收",
+          "text": "最新计划契约是 `researchops-coding-plan-v5`。默认调用预算：24 次模型请求、90 次工具调用、6 轮完整集成验证、120,000 编码循环 token、1,800 秒；任务还有各自尝试/上下文/花费上限。规划/其他科研阶段成本另记，不能把编码预算误称为全链费用。"
+        },
+        {
+          "section": "编码与独立验收",
+          "text": "四条谱系合计编码花费 **318,722 token**，包含失败；父子延续只计一次。两条成功记录属于同一个冻结 ViT 任务的两次起点，开发过程中调整过 harness，不能声称是固定版本两次无人干预首次成功。"
+        },
+        {
+          "section": "编码与独立验收",
+          "text": "workspace_batch_vit_v2/coding/"
+        },
+        {
+          "section": "编码与独立验收",
+          "text": "  coding_c9236140044de88f0b73_scratch_final_replanned_20261019/"
+        },
+        {
+          "section": "编码与独立验收",
+          "text": "    report.json       # coding_verified，102028 token，22/22"
+        },
+        {
+          "section": "编码与独立验收",
+          "text": "相应不可变计划：`workspace_batch_vit_v2/artifacts/coding/benchmark_scratch_final_replanned_20261019.json`。"
+        },
+        {
+          "section": "编码与独立验收",
+          "text": "第一个从零成功项目为 `coding_b47a5e29638086d91812_scratch_c_replanned_20261019/`；独立 Q/V LoRA gate 加强后无 LLM 复验仍为 22/22，证据在该目录 `rechecks/20261019T143236882286Z/report.json`。既有模板项目 `coding_c8a52f108d47c4227a8d/` 也保留，独立复验 22/22。"
+        },
+        {
+          "section": "编码与独立验收",
+          "text": "22 个 Gate 覆盖五种方法（linear probe、full finetune、LoRA、VPT-shallow、bottleneck adapter）的形状/梯度/冻结/初始化、独立指标重算、DTD/Pets 十组真实图片 2→3 步恢复、错误 checkpoint 拒绝、CLI、生成测试。128-job 调度使用 mock trainer，正式训练控制分支使用合成数据/tiny 模型；两者都不是 128 次正式训练。真实图片 smoke 也是随机初始化 tiny ViT，不能拿其 accuracy/F1 当科研结果。"
+        },
+        {
+          "section": "编码与独立验收",
+          "text": "最近一次完整代码回归 **71/71 passed**，本轮仅整理/文档和维护脚本改动，未重新运行全量训练或收费编码。"
+        },
+        {
+          "section": "5. Harness 的主要机制与参考来源",
+          "text": "- **RAG 与上下文**：BM25+dense 双路召回、cross-encoder 重排、MMR 去冗余；30 篇先压成 L1，shortlist 才进入 L2，L3 按子问题分批综合，避免全量论文同时进入上下文。编码仅传当前文件、接口、规格与必要错误信息。"
+        },
+        {
+          "section": "5. Harness 的主要机制与参考来源",
+          "text": "TaleClaw 的 MIT 部分已实际复用；Curie 借鉴分阶段实验计划与验证，RD-Agent 借鉴任务局部迭代，EurekAgent 借鉴独立评测和恢复账本，jacobian 借鉴请求准入。后四者是机制借鉴，未直接复制整个框架；jacobian 本身是数学 MCP 服务，不是 Coding Agent。参考与许可见 `docs/CODING_REFERENCES_20261019.md` 和 `THIRD_PARTY_NOTICES.md`。"
+        },
+        {
+          "section": "6. 环境、常用命令与恢复入口",
+          "text": "现有 `.venv`、依赖和 `.env` 可复用，当前无需新增 Key。LLM 使用 `.env.example` 定义的 OpenAI-compatible 端点字段；Semantic Scholar 不作为依赖。论文连接器不强制新 Key，访问政策仍可能变化。Docker Desktop 需要 Linux 容器模式；既有 CPU 镜像为 `researchops-coding:cpu-v1`。本地 embedding/reranker 首次下载后可复用缓存。"
+        },
+        {
+          "section": "批量文献/银标/实验准备应按需求分别运行，已有材料先检查缓存",
+          "text": "Python 临时单行诊断若要 `import researchops`，先 `sys.path.insert(0, 'src')`，避免根目录 `researchops.py` 遮蔽包。Windows 读取 JSON 明确使用 UTF-8。依赖安装元数据 `src/researchops_mvp.egg-info` 保留，它服务于当前 editable 安装。"
+        },
+        {
+          "section": "7. 下一阶段应做什么",
+          "text": "最新优先级：coding 前同领域多 IDEA 评测已完成首轮，结果显示初步规划迁移能力及语义/获取/成本短板；下一轮应优先处理这些短板并用新未见题验证，再推进论文识别交叉核验和 Skill。具体方案见 [TODO2.md](TODO2.md)，本轮结果见 [实测报告](docs/PRECODING_RUN_20261020.md)。以下编码评测/pilot 路线保留为后续备选。"
+        },
+        {
+          "section": "7. 下一阶段应做什么",
+          "text": "下一对话先读本文和 `docs/PRECODING_RUN_20261020.md`，再按需读 Coding 文档。v2研究契约尚需扩展对应 Coding 执行器；不要直接用旧 v1 五方法调度器执行全部新规格。本轮没有启动真实训练或新编码实验。"
+        },
+        {
+          "section": "7. 下一阶段应做什么",
+          "text": "1. **固定 Coding Agent 评测集**：用多个小而可验证的任务，分别测空目录构建、现有代码修改、模板适配。固定 harness/任务/种子和预算，保留失败，统计无人干预成功率、修复次数、累计 token/耗时、恢复可靠性。当前两次同题成功不能代替这项泛化评测。"
+        },
+        {
+          "section": "7. 下一阶段应做什么",
+          "text": "2. **改进必要的自主能力**：依赖 API 的受控查阅、测试夹具质量、明确的预算内重规划策略；所有改动用固定集比较。若要扩展到时间序列/知识图谱正式实验，先补数据与执行适配器。"
+        },
+        {
+          "section": "7. 下一阶段应做什么",
+          "text": "3. **准备真实 ViT pilot**：确认 CUDA/GPU/显存和可用时间，获取固定版本预训练权重并记录 SHA-256。以新的版本化 pilot 规格限制为一个数据集、少量方法/一个种子；保留现有冻结主规格，不直接启动 128 项全矩阵。完整 ViT-B/16 通常建议约 12GB 以上 CUDA 显存，仍需实际探测 batch size。"
+        },
+        {
+          "section": "7. 下一阶段应做什么",
+          "text": "4. **pilot 验收后再做正式实验**：验证调参、90 项主实验和18项消融，独立重算 accuracy/macro-F1/ECE、参数量、时间、显存，按三种子汇总不确定性，再判断假设；没有完整结果就报告不足或不支持。"
+        },
+        {
+          "section": "7. 下一阶段应做什么",
+          "text": "用户目前不必重新下载 30 篇论文、手工标注银标或手工补齐已成功取得的五个数据集。是否提供 GPU/远程机器、采用哪条下一阶段路线，需要在对应任务开始时明确；不能把尚未授权的大规模训练默认执行。"
+        },
+        {
+          "section": "8. 本次目录整理记录",
+          "text": "实际删除 8 个可再生的测试/Python 临时目录，共 **25,126,462 字节（约 23.96 MiB）**。这些不是研究材料，不提供回收站恢复，可由相应测试重新生成。另有 20 个 Windows 权限受限缓存目标，沙箱外重试仍无权限，保留并记录，未修改 ACL/所有权或强行删除；其存在不影响研究入口。"
+        },
+        {
+          "section": "8. 本次目录整理记录",
+          "text": "- 清理记录：`docs/cleanup_route2_20261019.json`；权限受限重试见 `docs/cleanup_route2_20261019_retry.json`、`docs/cleanup_route2_20261019_final.json`。"
+        },
+        {
+          "section": "8. 本次目录整理记录",
+          "text": "- 资产基线：`docs/asset_inventory_20261019.json`；清理后 **11 个工作区、152,408 个文件的路径/大小/修改时间指纹一致**，**89 个关键文件 SHA-256 一致**，包括 `.env`、`.env.example`、IDEA、数据库、冻结规格和成功代码/计划。大规模资产采用元数据指纹，不冒称逐一重算所有图像内容 hash。"
+        },
+        {
+          "section": "8. 本次目录整理记录",
+          "text": "- 本次 `researchops.py --help` 正常；未修改科研业务源码，未额外调用收费 LLM，未重跑正式训练。之前的 71/71 回归和 22/22 工程验收原证据均保留。"
+        },
+        {
+          "section": "8. 本次目录整理记录",
+          "text": "- 本次核验结果落盘于 `docs/asset_verification_20261019.json`，文档本地链接检查 36/36 有效。"
+        },
+        {
+          "section": "8. 本次目录整理记录",
+          "text": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/maintenance/audit_preserved_assets.ps1 -Verify"
+        },
+        {
+          "section": "8. 本次目录整理记录",
+          "text": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/maintenance/clean_test_cache.ps1"
+        }
+      ]
+    },
+    {
+      "original_document": "TODO2.md",
+      "sha256": "11a2ace0be8340720c1f7d098239dddbcdf2ef46f3a4161ba235f712622d3b3d",
+      "tables": [
+        {
+          "section": "2.2 构造 12 个正向 IDEA 和 4 个边界任务",
+          "markdown": "| ID | 研究问题 | 计划必须发生的实质变化 |\n| --- | --- | --- |\n| V01 | 小样本下 LoRA rank=2/8/16 的精度与参数量取舍 | rank 网格、等训练协议、参数成本指标 |\n| V02 | 10% 标签时 LoRA dropout=0/0.1 是否降低过拟合 | dropout 对照、固定 rank、验证/测试隔离 |\n| V03 | 只适配最后若干 ViT block，能否接近全部 block 的 LoRA | 可训练层范围、层数消融、相同测试协议 |\n| V04 | VPT 的 5/10/20 个 prompt token 如何影响小样本分类 | prompt 长度、参数量与训练成本 |\n| V05 | bottleneck adapter 宽度 16/32/64 的资源与精度取舍 | bottleneck 网格和参数预算 |\n| V06 | LoRA 的 weight decay=0/0.05 对低数据量泛化的影响 | 优化器设置、控制其他因素 |\n| V07 | 10% 标签时 LoRA 相比 full finetune 的效果如何 | 主要比较、10% 固定子集、低数据假设 |\n| V08 | 25% 与 100% 标签时，上述相对收益是否改变 | 嵌套子集、数据比例与方法交互分析 |\n| V09 | DTD 和 Pets 上 LoRA 相对 linear probe 的提升是否一致 | 两个不同领域数据集、分数据集结论 |\n| V10 | 相同低标签预算下 VPT 与 adapter 哪个更合适 | 比较对象变化、统一调参和数据预算 |\n| V11 | LoRA 与 full finetune 的置信度校准表现是否不同 | ECE/NLL、可靠性统计，避免只用 accuracy |\n| V12 | 每数据集分别选 rank，相比共用固定 rank 是否值得 | 验证集选型规则、同等搜索预算、禁止测试集调参 |"
+        },
+        {
+          "section": "4.1 轻量方案",
+          "markdown": "| Skill | 输入 → 输出 |\n| --- | --- |\n| `literature-acquire` | IDEA + 获取预算 → 统一论文记录、全文文件、逐来源获取报告 |\n| `paper-validate` | PDF/节点 + 核验范围 → 识别候选、分歧与可信状态；依赖 P1 完成后再标为成熟 |\n| `research-synthesize` | IDEA + 论文库 → L1/L2/L3、基线候选和带引用综合 |\n| `experiment-prepare` | 综合 + 约束 → 数据状态、质量 Gate、冻结规格或明确阻塞 |\n| `precoding-evaluate` | 固定 IDEA 集 + run artifacts → 分轨道指标、成本与错误分析 |"
+        }
+      ],
+      "numeric_context": [
+        {
+          "section": "下一阶段方案：多 IDEA 评测、论文识别核验与 Skills",
+          "text": "2026-10-20 P2实施：首批收敛为四个边界较稳定的Skills：literature-acquire、document-ingest、"
+        },
+        {
+          "section": "下一阶段方案：多 IDEA 评测、论文识别核验与 Skills",
+          "text": "12项中英文开发路由题全部匹配，两个负例均未误触发；四项均已真实执行，"
+        },
+        {
+          "section": "下一阶段方案：多 IDEA 评测、论文识别核验与 Skills",
+          "text": "入库→检索串联通过，规划经职责交接修复与两版方案通过机械/独立终审；133项回归通过。"
+        },
+        {
+          "section": "下一阶段方案：多 IDEA 评测、论文识别核验与 Skills",
+          "text": "18份调用工件离线审计通过。小样本按需首轮输入少68.7%，但含断连预留的成本未获优势。"
+        },
+        {
+          "section": "下一阶段方案：多 IDEA 评测、论文识别核验与 Skills",
+          "text": "全部已知实际662924token、未知预留152390保留，详见 [Skills实测](docs/SKILLS_V1_RESULTS.md)。"
+        },
+        {
+          "section": "下一阶段方案：多 IDEA 评测、论文识别核验与 Skills",
+          "text": "2026-10-20 公式v2实施：按要求金标仅预留；已实现有界静态复杂宏、向量/粗体差异诊断、"
+        },
+        {
+          "section": "下一阶段方案：多 IDEA 评测、论文识别核验与 Skills",
+          "text": "三篇三页同一OCR产物重放，严格源码一致4/11不变，另恢复四处粗体，合计可用源码支持8/11；"
+        },
+        {
+          "section": "下一阶段方案：多 IDEA 评测、论文识别核验与 Skills",
+          "text": "剩余2争议/1待核验被过滤，11个公式独自支撑复现的门控探测均被拒绝。124项回归通过。"
+        },
+        {
+          "section": "下一阶段方案：多 IDEA 评测、论文识别核验与 Skills",
+          "text": "完整范围、限制与证据见 [公式自动接入v2](docs/FORMULA_AUTOMATION_V2.md)。下文保留历史阶段。"
+        },
+        {
+          "section": "下一阶段方案：多 IDEA 评测、论文识别核验与 Skills",
+          "text": "2026-10-20 两路融合已完成：可选 `--retrieval-strategy fusion`，旧首篇保留、"
+        },
+        {
+          "section": "下一阶段方案：多 IDEA 评测、论文识别核验与 Skills",
+          "text": "两路候选原文重排、原文上下文+证据卡/蓝图、覆盖和引用检查。六IDEA/12问的"
+        },
+        {
+          "section": "下一阶段方案：多 IDEA 评测、论文识别核验与 Skills",
+          "text": "融合最终Recall42.89%、MRR1.000、nDCG0.749；正确性4.00、覆盖3.83、方案可用性4.00，"
+        },
+        {
+          "section": "下一阶段方案：多 IDEA 评测、论文识别核验与 Skills",
+          "text": "事实充分支持50/52（96.15%）。R04a直接机制说明仍遗漏，覆盖旧4分→融合2分；不隐去单题退步。"
+        },
+        {
+          "section": "下一阶段方案：多 IDEA 评测、论文识别核验与 Skills",
+          "text": "未证明历史保留的独立收益。109项测试和离线审计通过，公开两题最终均通过。"
+        },
+        {
+          "section": "下一阶段方案：多 IDEA 评测、论文识别核验与 Skills",
+          "text": "实际费用、服务失败和限制见 [融合结果](docs/RAG_FUSION_V1_RESULTS.md)、[用法](docs/RAG_FUSION_USAGE.md)。"
+        },
+        {
+          "section": "下一阶段方案：多 IDEA 评测、论文识别核验与 Skills",
+          "text": "2026-10-20 无CUDA改进实测补记：已实现并接入可选 `plan-study --retrieval-strategy cpu`："
+        },
+        {
+          "section": "下一阶段方案：多 IDEA 评测、论文识别核验与 Skills",
+          "text": "六 IDEA/12问的同轮匿名对照中，完整方案可用性2.83→4.00/4、事实原文充分支持率"
+        },
+        {
+          "section": "下一阶段方案：多 IDEA 评测、论文识别核验与 Skills",
+          "text": "65.31%→74.42%；问题覆盖3.83→3.50，不能称所有维度均提高。只改检索的方案评分2.75，"
+        },
+        {
+          "section": "下一阶段方案：多 IDEA 评测、论文识别核验与 Skills",
+          "text": "新检索排序0.690→0.703，但召回42.21%→41.65%、首篇相关排名下降，默认保留旧检索。"
+        },
+        {
+          "section": "下一阶段方案：多 IDEA 评测、论文识别核验与 Skills",
+          "text": "87→89→92→94篇扩库检查已实现；整体排序最终提高，固定旧证据保留仍触发退化阈值，"
+        },
+        {
+          "section": "下一阶段方案：多 IDEA 评测、论文识别核验与 Skills",
+          "text": "尚未解决长期不退化。530新增段被编码，7227旧向量全部保持一致。公开入口两题新旧均最终通过，"
+        },
+        {
+          "section": "下一阶段方案：多 IDEA 评测、论文识别核验与 Skills",
+          "text": "104项回归和离线审计通过。银标为临时主要参考，金标接口保留null；本轮无训练/无coding。"
+        },
+        {
+          "section": "下一阶段方案：多 IDEA 评测、论文识别核验与 Skills",
+          "text": "详见 [CPU对照全部结果](docs/RAG_CPU_V3_RESULTS.md)、[实现与使用](docs/RAG_CPU_USAGE.md)。"
+        },
+        {
+          "section": "下一阶段方案：多 IDEA 评测、论文识别核验与 Skills",
+          "text": "2026-10-20 P1已启动：公式区域/原图裁剪、候选与分歧、同版本静态源码核验、"
+        },
+        {
+          "section": "下一阶段方案：多 IDEA 评测、论文识别核验与 Skills",
+          "text": "局部本地重识别和独立版本产物已实现。真实三篇三页检出11个候选，11/11保存原图；"
+        },
+        {
+          "section": "下一阶段方案：多 IDEA 评测、论文识别核验与 Skills",
+          "text": "同一最终规范化口径下，源码佐证2/11→4/11，来自ExPLoRA三处紧裁剪重识别。"
+        },
+        {
+          "section": "下一阶段方案：多 IDEA 评测、论文识别核验与 Skills",
+          "text": "最终6处争议、1处待核验；均为源码银标，不称金标准确率。修复源码下载丢弃版本号，"
+        },
+        {
+          "section": "下一阶段方案：多 IDEA 评测、论文识别核验与 Skills",
+          "text": "新增公开validate-formulas入口；100项回归与公开CLI实跑通过。表格/图形、公共金标、全任务自动Gate及Skills仍待完成。"
+        },
+        {
+          "section": "下一阶段方案：多 IDEA 评测、论文识别核验与 Skills",
+          "text": "2026-10-20 RAG补充评测已完成：6个新idea、12个问题，真实新增7篇全文（四题取得新增），"
+        },
+        {
+          "section": "下一阶段方案：多 IDEA 评测、论文识别核验与 Skills",
+          "text": "语料87→94篇；全部7757段文本参与独立于排序的全文银标。保留原始失败并接入通用查询规划，"
+        },
+        {
+          "section": "下一阶段方案：多 IDEA 评测、论文识别核验与 Skills",
+          "text": "公开plan-study已使用该接口。统一复验完整神经/关键词的前十找回率42.21%/38.54%、排序得分"
+        },
+        {
+          "section": "下一阶段方案：多 IDEA 评测、论文识别核验与 Skills",
+          "text": "0.690/0.655，原文支持事实覆盖81.63%/73.91%；完整神经流程12/12首篇相关。"
+        },
+        {
+          "section": "下一阶段方案：多 IDEA 评测、论文识别核验与 Skills",
+          "text": "设计可用性3.58低于关键词3.92，不能声称科研方案质量整体提升；纯向量也未胜过关键词。"
+        },
+        {
+          "section": "下一阶段方案：多 IDEA 评测、论文识别核验与 Skills",
+          "text": "增量索引比全量编码约快12.7倍，但单次神经查询更慢。93项测试、两版离线审计通过。"
+        },
+        {
+          "section": "下一阶段方案：多 IDEA 评测、论文识别核验与 Skills",
+          "text": "本轮已知4,455,294 token加未知57,999均留档；P1/P2仍待完成。"
+        },
+        {
+          "section": "下一阶段方案：多 IDEA 评测、论文识别核验与 Skills",
+          "text": "2026-10-20 后续授权与实施：用户要求先证明领域内 coding 前的端到端质量，"
+        },
+        {
+          "section": "下一阶段方案：多 IDEA 评测、论文识别核验与 Skills",
+          "text": "300k 建议已由新工作区中的更高预算取代；所有旧账本和失败保留，未改 `.env`。"
+        },
+        {
+          "section": "下一阶段方案：多 IDEA 评测、论文识别核验与 Skills",
+          "text": "旧十二题回归12/12、输入变化4/4、边界4/4已完成；新六题原轮5/6，运行时指标目录"
+        },
+        {
+          "section": "下一阶段方案：多 IDEA 评测、论文识别核验与 Skills",
+          "text": "修复后采用同一版本统一复验6/6，且复验均首版通过。六题共核验75篇不同相关全文，"
+        },
+        {
+          "section": "下一阶段方案：多 IDEA 评测、论文识别核验与 Skills",
+          "text": "其中51篇相对原语料新增；最终14/14处事实引用可定位并获银标支持，87项测试通过。"
+        },
+        {
+          "section": "下一阶段方案：多 IDEA 评测、论文识别核验与 Skills",
+          "text": "已知实际3,694,358 token、未知预留548,716均有独立账本；`.env`未改。"
+        },
+        {
+          "section": "下一阶段方案：多 IDEA 评测、论文识别核验与 Skills",
+          "text": "最新状态和原始证据见 [最终实测](docs/PRECODING_V4_RESULTS.md)。"
+        },
+        {
+          "section": "下一阶段方案：多 IDEA 评测、论文识别核验与 Skills",
+          "text": "P1 公式交叉核验、P2 Skills 以及 coding/训练仍不在本轮执行范围。"
+        },
+        {
+          "section": "下一阶段方案：多 IDEA 评测、论文识别核验与 Skills",
+          "text": "日期：2026-10-19。本文是待实施方案，不是已完成能力或新实验结果。本轮只核查现有代码并制定方案，不调用收费模型、不安装新工具、不重跑论文/数据下载或训练。当前实测状态仍见 [route2.md](route2.md)。"
+        },
+        {
+          "section": "下一阶段方案：多 IDEA 评测、论文识别核验与 Skills",
+          "text": "2026-10-20 实施补记：用户已要求先完成问题1/2，P0 的多 IDEA 规划与评测代码已实现，并开始真实模型测评。上段“不调用收费模型”仅指原方案编写轮。新增入口、契约与测评口径见 [实施指南](docs/PRECODING_BENCHMARK.md)；真实成功/失败及费用必须以新的工作区报告为准。P1 论文识别和 P2 Skills 本轮尚未实施。"
+        },
+        {
+          "section": "1. 对三个问题的判断",
+          "text": "- 已有 5 个跨领域 IDEA，规模化全过程主要实测了 `vit_peft_small_data`。`scripts/evaluate_current_agent.py` 的输入和检索诊断仍围绕该案例，不能直接当作多 IDEA 端到端 benchmark。"
+        },
+        {
+          "section": "2.2 构造 12 个正向 IDEA 和 4 个边界任务",
+          "text": "2026-10-20 已将下列任务编写为 [研究输入库](config/idea_library_vit_peft_v1.json) 和独立的 [评测清单](config/benchmarks/precoding_v1.json)，不覆盖原 IDEA 库；均尚未运行。每个任务写清允许调整的字段、不可违反的约束、必须出现的对照与指标、证据需求；评测判据不放入可检索知识库。文献支持仍需运行时取证，不能把库中假设当结论。"
+        },
+        {
+          "section": "2.2 构造 12 个正向 IDEA 和 4 个边界任务",
+          "text": "这些是可执行比较问题，不预设某个方法一定更好，也不要求全球新颖。V03 等若超出当前规格表达能力，先扩充实验契约；不得静默忽略该变量后计为通过。"
+        },
+        {
+          "section": "2.2 构造 12 个正向 IDEA 和 4 个边界任务",
+          "text": "12 个正向任务采用 4 个开发任务、8 个保留测试任务；按研究因素分组选择，避免把同一句话的同义改写当独立泛化证据。固定测试后不依其结果反复调 prompt；新一轮开发应升级评测版本。可额外加入同义改写做一致性检查，但不增加独立任务数。"
+        },
+        {
+          "section": "2.2 构造 12 个正向 IDEA 和 4 个边界任务",
+          "text": "4 个边界任务单列统计：不支持的时间序列执行任务、禁止验证却要求用测试集选参数、证据不足却要求确认精确公式、给定资源无法满足的实验预算。期望是澄清、提出有标记的替代方案或返回明确阻塞，不能伪造 ready。拒绝率不应混入正向完成率。"
+        },
+        {
+          "section": "2.3 两条评测轨道，避免重复支付全文阅读费用",
+          "text": "**轨道 A：固定材料上的任务规划，运行全部 12 个正向 IDEA。**"
+        },
+        {
+          "section": "2.3 两条评测轨道，避免重复支付全文阅读费用",
+          "text": "- 复用已取得的 30 篇论文、解析结果、神经索引和数据 manifest，必要时一次性扩展为约 40–60 篇共享语料。共享语料不等于共享 IDEA 判断。"
+        },
+        {
+          "section": "2.3 两条评测轨道，避免重复支付全文阅读费用",
+          "text": "- 每个 IDEA 重新做相关性检索、筛选、少量关键全文取证、综合、对照选择、数据适配和实验规格冻结；L1/相关性标签与 L3 仍按 IDEA 和证据独立缓存。"
+        },
+        {
+          "section": "2.3 两条评测轨道，避免重复支付全文阅读费用",
+          "text": "- 不为每个 IDEA 重跑 40 篇全文银标。优先判读约 6–10 个高价值论文/证据组合，覆盖基线、替代方法、难负例；共享方法卡只节省阅读，不能替代当前任务的证据判断。"
+        },
+        {
+          "section": "2.3 两条评测轨道，避免重复支付全文阅读费用",
+          "text": "**轨道 B：真实联网全过程，选 4 个有代表性的 IDEA。**"
+        },
+        {
+          "section": "2.3 两条评测轨道，避免重复支付全文阅读费用",
+          "text": "- 如果需要“每个 IDEA 均有 30 篇全文”的能力结论，就必须逐任务达到该条件；只做小语料联网验收不能冒充该规模结论。"
+        },
+        {
+          "section": "2.4 主指标：预算内的 coding 前端到端通过率",
+          "text": "1. **Mechanical Ready Rate**：规格能解析、引用/数据文件存在、hash 正确、方法/指标/数据适配、任务数和资源预算可计算、划分无冲突的任务比例。"
+        },
+        {
+          "section": "2.4 主指标：预算内的 coding 前端到端通过率",
+          "text": "2. **Silver Plan Acceptance Rate**：独立评审按冻结 rubric 检查问题一致性、基线适当性、证据支持、对照/消融、指标与判定规则的比例。它是 LLM 银标指标，不称人工正确率。"
+        },
+        {
+          "section": "2.4 主指标：预算内的 coding 前端到端通过率",
+          "text": "3. **Pre-coding Success@Budget**：同一任务在固定花费/时间上限内，同时通过机械 Gate 和银标语义 Gate，且轨道 B 满足获取/解析要求，才记为通过。报告原始分子/分母和逐任务结果；A/B 分开报告。"
+        },
+        {
+          "section": "2.5 评审独立性、对照与预算",
+          "text": "- 论文角色标签至少加入难负例，修正已有 38/40 都相关的偏斜；不能原封不动沿用旧 IDEA 的银标。"
+        },
+        {
+          "section": "2.5 评审独立性、对照与预算",
+          "text": "- 小型消融先选 4 个固定任务：摘要检索+简单计划、BM25 取证、当前完整 RAG+分层压缩。控制证据/token 上限；分别展示同预算质量和实际成本，不能同时改模型、语料与提示词再归因于 RAG。"
+        },
+        {
+          "section": "2.5 评审独立性、对照与预算",
+          "text": "- **先跑 2 个开发任务计量，再估算整轮**。粗略公式为“共享材料处理 + 各 IDEA 的规划/新增取证 + 银标评审 + 联网新增材料 + 重试”；缓存历史成本和本轮新增成本分开。"
+        },
+        {
+          "section": "2.5 评审独立性、对照与预算",
+          "text": "- 若缓存后每任务规划约 4k、评审约 3k token，12 任务约 84k；共享卡片/标注若需 40k–80k，加上 4 个联网任务新增各 20k–40k，约为 **204k–324k token**。这些仅是预算算例，不是已测成本，实际会随证据、模型和失败情况变化。"
+        },
+        {
+          "section": "2.5 评审独立性、对照与预算",
+          "text": "- 建议第一轮先设 **300k token 全链上限**，覆盖准备/规划/裁判/重试；达到上限就报告部分完成，而不自动追加。是否足够先由 2 任务试点决定。多模态解析评审成本另行计量，不能偷偷排除真实费用。"
+        },
+        {
+          "section": "2.6 待实现文件与验收",
+          "text": "- [x] 编写12个同领域研究输入与独立评测清单，含4 dev/8 test、2试点、4联网与4边界任务（2026-10-20，未运行）。"
+        },
+        {
+          "section": "2.6 待实现文件与验收",
+          "text": "- [x] 新增 `experiments/planning.py` 同领域参数化 v2 契约编译器，复用 v1 数据/方法定义并保留旧规格兼容；规划器不读取评测 ID/预期答案。另有公开 `plan-study` 自然语言入口。"
+        },
+        {
+          "section": "2.6 待实现文件与验收",
+          "text": "- [x] 12个正向、4个边界和4个联网任务均有记录；区分开发/测试、A/B、机械/银标与实际/预留成本；原冻结A成功6/12、B成功1/4，接口修复机械重放12/12不冒充银标100%。见 [真实报告](docs/PRECODING_RUN_20261020.md)。预算内未做额外自然语言成对检查/摘要BM25消融，未宣称相应成绩。"
+        },
+        {
+          "section": "3.3 要测准确率，仍需一个独立参考集",
+          "text": "首版目标可设为约 10 篇论文的 **150 个区域**：100 个公式、30 个表格、20 个图形；按论文划分开发/测试，保留长公式、矩阵、多级表头、双栏、扫描/低清等难例，不只挑容易的。"
+        },
+        {
+          "section": "3.4 待实现与预算控制",
+          "text": "- [x] 2026-10-20：公式子流程及3篇真实试点完成；同版本源码凭据、坐标/原图、候选/分歧、版本化产物、局部本地重识别与CLI已实现。以下跨表格/图形和金标任务仍保留待办。"
+        },
+        {
+          "section": "3.4 待实现与预算控制",
+          "text": "- [ ] 优先只核验 L2 基线论文中的关键区域及抽样区域，不给所有论文所有页面一律做多模型全量识别。"
+        },
+        {
+          "section": "3.4 待实现与预算控制",
+          "text": "- [ ] 可选独立公式 OCR（如适用的本地 pix2tex）和视觉端点须先测质量与依赖；原计划轮不安装。2026-10-20已复用缓存的CodeFormulaV2完成局部重识别，但它与Docling识别器相同，不作为独立投票。现有 `.env` 模型仍未确认支持图片。"
+        },
+        {
+          "section": "4.1 轻量方案",
+          "text": "建议首批 5 个："
+        },
+        {
+          "section": "4.3 验收指标",
+          "text": "- [x] 开发路由12/12、负例误触发0/2；隐藏直调/越权拒绝测试通过，普通科研入口不暴露coding。"
+        },
+        {
+          "section": "4.3 验收指标",
+          "text": "- [x] 完整成功案例平均token少57.4%，但含断连未知预留后按需组记账高31.8%；未宣称部署总体费用必然降低。"
+        },
+        {
+          "section": "5. 实施顺序与可交付结果",
+          "text": "1. **先 P0 规格参数化、评测框架和 2 任务试点**，查明成本、固定指标，再运行 12 IDEA 规划/4 IDEA 联网验收；真实得出结果，不预设分数。"
+        },
+        {
+          "section": "5. 实施顺序与可交付结果",
+          "text": "2. **再 P1 关键区域双路对照与独立参考评测**，先证明分歧检测和准确性收益，再决定是否引入第三个解析器/视觉模型。"
+        },
+        {
+          "section": "5. 实施顺序与可交付结果",
+          "text": "3. **最后 P2 技能化并做回归/消融**，封装稳定模块，不将尚未可靠的功能描述为成熟技能。"
+        },
+        {
+          "section": "5. 实施顺序与可交付结果",
+          "text": "初始方案轮仅交付本文与导航；2026-10-20 补写库/清单后，已按用户新要求实施并实测P0。最新指标、接口修复、预算失败与未执行的可选检查见 [本轮报告](docs/PRECODING_RUN_20261020.md)。P1/P2、Coding Agent跨任务稳定性和正式科学实验结果仍是独立未完成事项，不因规划评测而自动获得验证。"
+        }
+      ]
+    },
+    {
+      "original_document": "docs/ARCHITECTURE.md",
+      "sha256": "fa0249451ad8261c66c89fad9cb1d72777cbd587bc37010f8c24cca38730f8fa",
+      "tables": [
+        {
+          "section": "技术亮点与实际边界",
+          "markdown": "| 能力 | 当前做法 |\n|---|---|\n| 真正使用 RAG | 本地 neural embedding、FTS5/BM25、dense、cross-encoder rerank、MMR；L3 综合实际消费检索节点，保留 paper/node 引用 |\n| 上下文管理 | 30 篇先看 L1，只为 shortlist 读取 L2，按子问题 L3 map-reduce；编码请求省略旧源码/大读取结果，保留完整审计日志并去重失败反馈 |\n| 可追溯与缓存 | 文档页码/bbox/节点、版本、prompt/source hash、模型信息；证据/规格/模板/源码/验证器变化使相应缓存失效 |\n| 并行与恢复 | 文献有界并行 DAG、逐论文逐阶段状态与重试；编码消息/代码/预算 checkpoint；训练保存 optimizer/scheduler/RNG 和进度 |\n| 工具治理 | 模型工具 schema、Agent 可见工具、参数与路径约束、预算与失败停止策略；`.env` 自动读取且不挂载到执行容器 |\n| 独立执行验收 | Docker 固定 image ID，断网、数据/源码/验证器只读；从 logits/labels 重算指标，检查适配参数梯度、冻结和恢复 |\n| 可量化 | 银标 nDCG/precision/recall/引用有效率；TaleClaw 风格 pass、verifier、预算、trace 完整率；记录调用、token、时间、缓存命中 |"
+        },
+        {
+          "section": "哪些预留，哪些未通过",
+          "markdown": "| 项目 | 当前状态 | 提高预算的作用 |\n|---|---|---|\n| 人工论文/数据补充 | 已有 `ingest` / `dataset-import` 基础命令，计划中保留人工接力字段；统一补充工作流和“下载完成”按钮未做 | 需要接口/交互实现，增加 token 无法补齐 |\n| 人工金标 | `GoldReviewManager` 模板与校验代码已保留，无已完成的人工金标语料 | 需要真实人工复核；LLM 银标不能自动升级为金标 |\n| PDF 公式保真 | Docling/OCR、公式/表格节点、原页定位已做，不能保证 100% 正确，未做完整人工公式保真评测 | 算力或解析器可能改善识别，不能替代准确性核查 |\n| 从零自动编码 | 单文件任务 DAG、局部修复和预算预留已实现；同一冻结 ViT 任务两次从空目录起点完成，分别 103,189 / 102,028 token，通过 22/22，均有恢复或一次任务重规划 | 仍不能保证任意项目无人干预一次完成；应扩充固定任务集评估稳定性，不能仅靠加预算。真实失败与成本见 `CODING_SCRATCH_RUN_20261019.md` |\n| 正式科研实验 | 128 项任务的调度和控制分支已检查，实际预训练、多种子训练未跑 | 还需要权重准备、运行适配与算力，token 预算不是主要条件 |\n| 其他领域自动实验 | 文献流程可处理现有领域；数据适配器目前五个图像基准，执行模板目前 ViT | 需要新增数据/实验适配器，不能只提高预算 |\n| 七源网络稳定性 | 多源、重试、缓存、失败状态可用；公开站点仍可能限流、不可达或无开放全文 | 更长时间可能提高成功率，不能绕过访问限制 |"
+        }
+      ],
+      "numeric_context": [
+        {
+          "section": "功能链条",
+          "text": "  → L0/L1/L2/L3 分层压缩与缓存"
+        },
+        {
+          "section": "功能链条",
+          "text": "  → BM25 + dense + cross-encoder + MMR 取证"
+        },
+        {
+          "section": "功能链条",
+          "text": "  → 30 篇 L1 筛选 → L2 shortlist → L3 map-reduce 综合"
+        },
+        {
+          "section": "功能链条",
+          "text": "正式的预训练、多随机种子实验和假设判断是后续执行阶段；现在完成的是 tiny ViT 与真实图片的工程验收。现有 128 项正式任务仅通过模拟 trainer 调度检查，不能称为完成了 128 次科研实验。"
+        },
+        {
+          "section": "技术亮点与实际边界",
+          "text": "上下文压缩目前是固定规则，不是成熟的自动记忆系统。新编码执行器按任务构建上下文，只包含当前文件、接口、规格和失败反馈；token 在调用前预留，失败或 usage 缺失时不释放预留。旧版调用后检查导致超预算的问题记录仍保留。客户端预留无法保证服务商计费行为，细节见 [参考审阅和实现映射](CODING_REFERENCES_20261019.md)。"
+        },
+        {
+          "section": "数据与运行文件的位置",
+          "text": "所有 `workspace*` 保留原位置，以免破坏持久化的绝对路径和 source hash。尤其保留 `workspace_batch_vit_v2/` 的 PDF、解析结果、数据库、向量、分层压缩、银标、五个数据集、冻结规格、最终代码、checkpoint 和报告。旧工作区也保留，不能仅凭 smoke/旧版本名称判断其无用。"
+        }
+      ]
+    },
+    {
+      "original_document": "docs/AUDIT_20261019.md",
+      "sha256": "7939c483fc25adcffb826de8691c6f7f76fec5b88081082cd008e676b92c0fb8",
+      "tables": [
+        {
+          "section": "运行与结果",
+          "markdown": "| 测量 | 本轮实际结果 | 解释 |\n| --- | --- | --- |\n| PDF/解析/存储节点完整性 | 30/30 | 重算 PDF SHA256，并核对解析侧文件和数据库节点文本 |\n| 神经向量有效覆盖 | 14,315/14,315 | 核对来源 hash、维数、有限数值；不是语义准确率 |\n| 数据集复核 | 5/5，141,178 样本 | 全部重新解码，核对像素 hash、标签、来源划分、manifest hash |\n| 有效数据划分间重复像素 | 0 | 38 个重复样本已排除，官方测试样本全部保留；不能排除近重复 |\n| 银标节点引用可定位率 | 87/87 | 引用存在且归属对应论文；不是论断与证据语义一致率 |\n| 获取阶段 trace 覆盖 | 128/128 | 仅这次批处理涉及的获取阶段，不代表所有系统行为均可观测 |\n| 已有 DAG 恢复 | 10/10 节点 | 本轮复用已有 checkpoint，执行/下载均为 0；不是新做的断电注入试验 |\n| 回归测试 | 53 passed | 包括导入、重试、恢复、格式及划分校验；不是科研任务成功率 |"
+        },
+        {
+          "section": "运行与结果",
+          "markdown": "| 来源 | 检索 | 本次首条候选的 PDF |\n| --- | --- | --- |\n| arXiv | 成功 | 下载成功，563,199 bytes |\n| OpenAlex | 成功 | 未提供直接 PDF |\n| OpenReview | 成功 | 未提供直接 PDF |\n| DBLP | 失败 | 返回非 JSON，未下载 |\n| ACL | 成功 | 下载成功，932,160 bytes |\n| CVF | 成功 | 下载成功，3,658,010 bytes |\n| Crossref | 成功 | 出版商拒绝访问，HTTP 403 |"
+        },
+        {
+          "section": "运行与结果",
+          "markdown": "| 方法 | Hit@1 | Hit@5 | MRR@10 |\n| --- | ---: | ---: | ---: |\n| BM25 | 0.625 | 0.750 | 0.6875 |\n| 神经 dense | 0.375 | 0.625 | 0.4826 |\n| BM25+dense+cross-encoder+MMR | 0.750 | 0.875 | 0.8056 |"
+        }
+      ],
+      "numeric_context": [
+        {
+          "section": "运行与结果",
+          "text": "离线测评实际运行 137 秒，复用已有模型与向量缓存，无新增 LLM 调用。"
+        },
+        {
+          "section": "运行与结果",
+          "text": "- `workspace_batch_vit_v2/artifacts/evaluation/audit_current_agent.json`"
+        },
+        {
+          "section": "运行与结果",
+          "text": "- `workspace_batch_vit_v2/artifacts/evaluation/audit_live_sources.json`"
+        },
+        {
+          "section": "运行与结果",
+          "text": "6/7，实际 PDF 下载成功来自 3 个来源："
+        },
+        {
+          "section": "运行与结果",
+          "text": "3/4 个具有直接 PDF 地址的首条候选下载成功；3/7 不是“全体论文下载成功率”。"
+        },
+        {
+          "section": "运行与结果",
+          "text": "PDF 文件在 `workspace_batch_vit_v2/source_probe/papers/`。本次 ACL 首次下载"
+        },
+        {
+          "section": "运行与结果",
+          "text": "12.7 MB 目录并建立索引导致耗时约 234 秒，说明冷启动仍有较大开销。"
+        },
+        {
+          "section": "运行与结果",
+          "text": "没有在本轮重下全部数据集；数据集的自动下载规模来自此前真实运行的 5 个数据集，"
+        },
+        {
+          "section": "运行与结果",
+          "text": "对 8 道固定“找出指定方法论文”的查询，在真实 30 篇全文语料上检索："
+        },
+        {
+          "section": "运行与结果",
+          "text": "统一从前 20 个节点按首次出现顺序去重论文；混合检索候选上限为 80。"
+        },
+        {
+          "section": "运行与结果",
+          "text": "因此可以说明本地实现的相对表现，不能据此声称通用科研准确率达到 87.5%。"
+        },
+        {
+          "section": "运行与结果",
+          "text": "在原有 40 条 LLM 银标上重新计算原批处理筛选指标：nDCG@10=0.7633，"
+        },
+        {
+          "section": "运行与结果",
+          "text": "nDCG@30=0.8740，6 篇 shortlist precision=1.0，shortlist recall=0.1579。"
+        },
+        {
+          "section": "运行与结果",
+          "text": "这是文献筛选评测，与上面的节点混合检索测评不同。40 条标签中 38 条相关，"
+        },
+        {
+          "section": "参考项目指标对应",
+          "text": "- `references2_structure/2文献研究-检索、精读、综述与引用网络/paper-qa-main/README.md`"
+        },
+        {
+          "section": "核实后的能力边界",
+          "text": "- 7 个论文连接器存在，但 Crossref/DBLP 等常提供元数据或跳转链接，不能保证每篇"
+        },
+        {
+          "section": "核实后的能力边界",
+          "text": "- 数据集支持固定的 5 个视觉分类数据集，具有 Hugging Face 固定版本镜像与官方源"
+        },
+        {
+          "section": "核实后的能力边界",
+          "text": "- 实测人工本地导入 `2406.10973.pdf`，在 `workspace_audit_manual_paper` 中得到"
+        },
+        {
+          "section": "核实后的能力边界",
+          "text": "  756 个节点与解析侧文件。与自动下载共用 `DocumentIngestor`，但默认不附着原任务，"
+        },
+        {
+          "section": "核实后的能力边界",
+          "text": "  不自动重新执行 L1/L2/L3、重新选基线或更新冻结实验规格。"
+        },
+        {
+          "section": "核实后的能力边界",
+          "text": "- RAG 组件真实存在：本地神经 embedding、BM25、cross-encoder、MMR、可追溯节点。"
+        },
+        {
+          "section": "核实后的能力边界",
+          "text": "  批量综合中 `_index_and_retrieve` 的结果只记录为检查，`PaperCompressor.l3`"
+        },
+        {
+          "section": "核实后的能力边界",
+          "text": "- 当前 30 篇都由 PyMuPDF 解析。Docling 的 OCR/公式路径虽已编码，公式准确率未测；"
+        }
+      ]
+    },
+    {
+      "original_document": "docs/CODING_AGENT.md",
+      "sha256": "b48960d271c0aa9c5300a6a67a738a6fe1e47f27a7e459ab29514cd17fe88483",
+      "tables": [],
+      "numeric_context": [
+        {
+          "section": "Coding Agent 与验证闭环",
+          "text": "输入是已验收的实验准备记录，不是让模型自由猜测实验。现有完整链条为：IDEA → 多源论文获取 → 解析与神经知识库 → L1 筛选/L2 shortlist → 混合 RAG 驱动的 L3 map-reduce → 银标质量验收 → 数据下载与划分校验 → 冻结实验规格 → 编码计划 → LLM 写代码 → Docker 外部验证 → 反馈修复或有界停止。"
+        },
+        {
+          "section": "交接格式",
+          "text": "`artifacts/coding/plan_<idea_id>_<hash>.json` 的 `researchops-coding-plan-v5` 包含："
+        },
+        {
+          "section": "交接格式",
+          "text": "- `frozen_spec`、`source_artifacts`：规格、原始文献批次、新综合的路径及 SHA-256。"
+        },
+        {
+          "section": "交接格式",
+          "text": "- `template`：匹配已支持的 ViT 方法组合时，复用经集成修复和验收的实现，逐文件 SHA-256 锁定。模型先外部验收，再修复失败；不冒称模板代码是该轮 LLM 从零生成。"
+        },
+        {
+          "section": "命令",
+          "text": "docker build -t researchops-coding:cpu-v1 sandbox"
+        },
+        {
+          "section": "Docker Hub 不可达时可用显式镜像源参数：",
+          "text": "docker build -t researchops-coding:cpu-v1 --build-arg PYTHON_IMAGE=docker.m.daocloud.io/library/python:3.12-slim-bookworm sandbox"
+        },
+        {
+          "section": "按已有不可变计划恢复，避免后续默认计划升级改变任务身份：",
+          "text": "自然语言 Agent 的 `implement_experiment` 工具也支持 `from_scratch=true`，能够从主运行循环进入同一执行器。真实运行结果和失败成本见 [从零编码实测](CODING_SCRATCH_RUN_20261019.md)。"
+        },
+        {
+          "section": "按已有不可变计划恢复，避免后续默认计划升级改变任务身份：",
+          "text": "新计划默认最多 24 次模型调用、90 次工具调用、6 轮完整外部验收、12 万生成循环 token、30 分钟，另按任务限制模块验收次数。旧计划保留原预算。每次请求前预留输入上界和输出限额，使用 usage 结算；缺失 usage 或调用失败保留预留。达到预算或依赖不可用时返回 `needs_attention`，不伪造通过。只有当前代码指纹通过全部外部 Gate 才返回 `coding_verified`；验证器/支持代码变化后旧通过结果失效。完整日志保留；从零模式只传当前任务的源码、接口、规格和失败反馈，采用精确局部替换，避免重写整个项目。详细机制见 [参考审阅与实现映射](CODING_REFERENCES_20261019.md)。"
+        },
+        {
+          "section": "执行与验收",
+          "text": "模板兼容路径提供读文件、写允许文件、列文件、请求验证、完成五类工具。从零模式进一步收紧为当前任务的文件生成或精确替换，验证与结束由宿主调度。宿主验证器位于生成目录之外；模型不可修改它。Docker 固定实际 image ID，断网、只读 rootfs、无新增权限、2 CPU/3 GB；只允许输出目录写入，`.env` 不挂载。"
+        },
+        {
+          "section": "执行与验收",
+          "text": "外部 Gate 检查 linear probe、full finetune、LoRA、VPT、bottleneck adapter 的前向/反向与冻结；检查 LoRA/adapter 的零初始化；独立重算 accuracy/macro-F1/ECE；在 DTD/Pets 原始图像上对每种方法训练并续跑；拒绝错误 job/config 的 checkpoint；检查 CLI 与生成项目自带测试。另以模拟 trainer 检查 128 项任务的 LR 解析和消融调度，以合成数据/tiny 模型检查正式训练分支的 epoch 与测试集访问控制；两者都不是正式科研训练结果。"
+        },
+        {
+          "section": "执行与验收",
+          "text": "这是 CPU 工程 smoke：32 像素、随机初始化 tiny ViT、每种组合 2 步后续跑至 3 步。它验证代码与数据链路，不能证明预训练 ViT 的科研效果。正式入口保持冻结 backbone、划分、训练日程和 128 个任务；正式实验需要预训练权重和相应算力。全量结果未齐时不得输出假设成功。"
+        },
+        {
+          "section": "输出",
+          "text": "2026-10-19 早期版本的真实运行暴露了从空目录生成不稳定：当时三轮版本均耗尽 token 预算。自动失败报告保留在各自 `coding_<id>/report.json` 中。集成期间修复了 VPT 参数没有进入前向、任务 LR 未解析、正式训练测试分支缺失等问题，独立复测通过 22/22；这类集成修复与模板复用不会算作“从零自动编码成功”。后续 v5 已有两条同题从空目录起点经恢复/一次重规划后 22/22 的记录，完整成本与限制见 [最新实测](CODING_SCRATCH_RUN_20261019.md)。"
+        }
+      ]
+    },
+    {
+      "original_document": "docs/CODING_AGENT_RUN_20261019.md",
+      "sha256": "c7f1b8cd7acf3456583223cf326a8fdd9714d2601c0864f32912bfa9efdd0e23",
+      "tables": [
+        {
+          "section": "Coding Agent 实际接入记录（2026-10-19）",
+          "markdown": "| 项目 | 实际结果 |\n|---|---|\n| 输入 | 原 30 篇全文语料，6 篇 shortlist × 3 子问题的 18 份新混合 RAG L3 map，综合保留 81 条节点引用 |\n| 计划 | `artifacts/coding/plan_vit_peft_small_data_c8a52f108d47c422.json`，v4 JSON；冻结规格、依赖任务、接口、证据、模板逐文件 hash、预算 |\n| 实现来源 | LLM 初稿经集成修复后保存的 `vit_peft_v1` 模板；本轮 LLM 复用、请求外部验收并完成，无代码改写 |\n| 真实 LLM 调用 | 2 次模型调用，2 次工具调用，17,621 token，40.05 秒，1 轮外部验证 |\n| 外部 Gate | 22/22 通过，报告为 `verification_1/verifier.json` |\n| 真实数据 | DTD、Oxford-IIIT Pet × linear/full/LoRA/VPT/adapter，共 10 组；每组训练 2 步再从 checkpoint 续跑到 3 步，每次验证 8 个真实样本 |\n| 指标 | accuracy、macro-F1、15-bin ECE 从保存的 logits/labels 独立重算；随机初始化 tiny ViT 的极短训练不评估科研效果 |\n| 其他验证 | 五种方法前后向、适配参数梯度、冻结参数、零初始化等价、错误 checkpoint 拒绝、CLI、自带单测 |\n| 正式协议控制 | 模拟 trainer 调度 128 项冻结任务，检查 LR 解析和消融参数；合成数据/tiny 模型检查正式训练分支，无正式预训练训练 |\n| Harness 单测 | 60/60 通过 |\n| 恢复 | `code --resume` 返回 `cache_hit=true`，未再消耗 LLM 调用；规格、证据、源码及 harness hash 受校验 |\n| 科研结论 | `research_success=null`；完整预训练、多种子研究尚未执行 |"
+        }
+      ],
+      "numeric_context": [
+        {
+          "section": "Coding Agent 实际接入记录（2026-10-19）",
+          "text": "运行目录：`workspace_batch_vit_v2/coding/coding_c8a52f108d47c4227a8d/`。"
+        },
+        {
+          "section": "Coding Agent 实际接入记录（2026-10-19）",
+          "text": "TaleClaw 的 pass/verifier/预算/trace 等 scorecard 在这一次模板任务中均为 1。样本量是一个任务，不表示其他 IDEA 的通用成功率。"
+        },
+        {
+          "section": "Coding Agent 实际接入记录（2026-10-19）",
+          "text": "- `coding_bb535e9a8a75d01ec478/report.json`：156,165 token，未进入外部验证。"
+        },
+        {
+          "section": "Coding Agent 实际接入记录（2026-10-19）",
+          "text": "- `coding_9ffa69e17bbf9026c9d4/report.json`：154,266 token，7/20 通过。"
+        },
+        {
+          "section": "Coding Agent 实际接入记录（2026-10-19）",
+          "text": "- `coding_7f2ab39c4d9a2cfb954f/report.json`：319,647 token，19/22 通过；其代码随后经集成修复，独立复测 22/22，另存 `rechecks/20261019T101907275491Z/report.json`，没有覆盖失败记录。"
+        },
+        {
+          "section": "Coding Agent 实际接入记录（2026-10-19）",
+          "text": "这四次编码循环累计 647,699 token，不含论文综合和规划消耗。17,621 是最后一次模板路径的成本，不能当作首次搭建总代价。历史版本用于记录开发过程，不是四个独立科研任务的泛化 benchmark。"
+        }
+      ]
+    },
+    {
+      "original_document": "docs/CODING_REFERENCES_20261019.md",
+      "sha256": "677ed4e87f97448932e3cd5d03b497e874ab97ed20bc7947e8e6ada3abaaacde",
+      "tables": [],
+      "numeric_context": [
+        {
+          "section": "Coding 参考代码审阅与实现映射",
+          "text": "按根目录 README → 必要相关源码顺序，审阅 `references3_coding2` 四个项目。没有安装上游完整运行时，也没有增加 Key 或修改 `.env`。"
+        },
+        {
+          "section": "执行方式",
+          "text": "`coding-plan --from-scratch` / `code --from-scratch` 关闭模板。计划 `researchops-coding-plan-v5` 附带 `execution.tasks`：metrics → models → training → dispatch → tests → documentation，其中训练依赖 metrics/models，后续任务按依赖执行。"
+        },
+        {
+          "section": "执行方式",
+          "text": "每个任务拥有一个输出文件，约定函数签名、模块验收分组、最多 3 次生成/修复、独立 token 限制和上下文大小限制。首次返回完整文件，修复返回精确唯一匹配的替换片段；修改先在内存中全部验证再原子写入，失败片段不会部分落盘。降低已通过检查数量的修复回滚。"
+        },
+        {
+          "section": "执行方式",
+          "text": "默认生成预算 120,000 token、24 次模型请求、每任务最多 3 次尝试、最多 6 次完整验收、30 分钟。外部 Docker 每次上限 180 秒；模块级验收受任务尝试数限制。模板路径仍可使用，并同样加入调用前 token 预留。"
+        },
+        {
+          "section": "执行方式",
+          "text": "每次调用以 UTF-8 字节数加 framing 的保守上界估计输入，再加 `max_tokens` 预留输出。剩余总预算或任务预算不足时不发送请求。成功后用服务商 usage 结算；失败、断线或缺失 usage 时保留预留消耗。真实适配器每次只发送一次请求，不在内部隐式重试。"
+        },
+        {
+          "section": "审计与恢复",
+          "text": "任务来自已冻结的真实 ViT PEFT 规格，六文件、五方法、DTD/Pets 数据，关闭全部代码模板。完整预训练 128-job 科研实验不在本次自动执行范围内。生成代码只在现有断网 Docker 沙箱中运行。"
+        }
+      ]
+    },
+    {
+      "original_document": "docs/CODING_SCRATCH_RUN_20261019.md",
+      "sha256": "c97642bd99c8afbc43c333de754fb1dc354b764874511e5549f7a005719724c3",
+      "tables": [
+        {
+          "section": "开发版本失败记录",
+          "markdown": "| 版本 | 累计模型请求 | 累计生成 token | 结果 |\n|---|---:|---:|---|\n| scratch_a（包括一次保留预算的恢复） | 4 | 43,173 / 120,000 | 指标和模型通过；训练从 1/12 自动修至 11/12，但剩余任务预算不足以容纳下一请求，提前拒绝调用 |\n| scratch_b | 7 | 70,332 / 120,000 | 指标通过、模型自动修复后通过、训练一次通过 12/12；调度连续三次未完成，按任务尝试上限停止 |\n| scratch_c → scratch_c_replanned（同一累计预算） | 10 | 103,189 / 120,000 | 六文件全部完成，完整外部验收 22/22；包含一次有记录的任务重规划，没有重置已花费的 62,863 token |\n| scratch_final → scratch_final_replanned（同一累计预算） | 11 | 102,028 / 120,000 | 第二次独立空目录起点；模型与测试自动修复、普通恢复和一次测试任务重规划后，完整严格验收 22/22 |"
+        }
+      ],
+      "numeric_context": [
+        {
+          "section": "测试范围",
+          "text": "使用 `workspace_batch_vit_v2` 已冻结的 ViT PEFT 规格及已下载的 DTD、Pets 数据。从空项目目录调用原 `.env` 的 LLM，生成 `models.py`、`metrics.py`、`train.py`、`run_experiment.py`、`README.md`、`tests/test_experiment.py`。"
+        },
+        {
+          "section": "测试范围",
+          "text": "关闭模板，不把旧成功项目源码交给模型，不由集成者手工修补生成的项目代码。集成者根据失败改进的是通用 harness、任务计划与接口契约。每个独立实验总生成预算 120,000 token；失败记录与累计 usage 保留。不能把多个开发版本的尝试合并声称“一次成功”。"
+        },
+        {
+          "section": "测试范围",
+          "text": "本次原始完整验收仍为 22 项：五方法前后向和适配参数有效梯度、冻结和零初始化、独立指标重算、十组 DTD/Pets 真实图像 2→3 步恢复、错误配置恢复拒绝、CLI、128-job 模拟调度、合成数据上的正式训练控制分支、生成项目测试。后两类控制测试不属于真实预训练科研结果。"
+        },
+        {
+          "section": "开发版本失败记录",
+          "text": "`scratch_a` 原始停止于 30,470 token 的报告也保存在其 `history/` 下。恢复没有重置 token；源码和 harness 变更后对已完成模块重新验证，未重新付费生成它们。"
+        },
+        {
+          "section": "开发版本失败记录",
+          "text": "第三版还发现验证反馈遗漏程序 stderr，仅把 `SystemExit: 1` 传给模型，以及无效补丁覆盖了原验证错误。修复 harness 的反馈后，在原 12 万总额度内给失败任务增加两次尝试、重新分配任务额度；复制父任务的生成代码和完整预算账本到单独 continuation 目录，原记录保持不变。父子合计 10 次请求、103,189 token、累计活动运行 351.66 秒（不含开发分析暂停），未发生人工项目源码修补。"
+        },
+        {
+          "section": "开发版本失败记录",
+          "text": "成功项目：`workspace_batch_vit_v2/coding/coding_b47a5e29638086d91812_scratch_c_replanned_20261019/project/`，报告位于同级 `report.json`。任务完成率 6/6，任务首次验收通过率 4/6，最终 verifier 22/22，预算内完成，最大请求上下文 26,366 UTF-8 字节。模块首次通过率不能误称为独立项目成功率。"
+        },
+        {
+          "section": "开发版本失败记录",
+          "text": "第二次空目录运行还发现原检查允许 Q/V 共享 LoRA 更新的漏洞。现有 `model_lora` gate 已加强：按冻结 rank 和 smoke 架构检查两层独立 Q/V A/B 的参数数量。该运行的模型由 LLM 自动改为独立 Q/V 更新；最终项目为 `workspace_batch_vit_v2/coding/coding_c9236140044de88f0b73_scratch_final_replanned_20261019/project/`。累计活动运行 344.17 秒、11 请求、102,028 token、完整验收 22/22、六任务完成、任务首次通过 4/6、最大上下文 22,376 字节。"
+        },
+        {
+          "section": "开发版本失败记录",
+          "text": "上述四条开发实验谱系的编码总消耗为 **318,722 token**，包含失败版本；C 和 final 的父子消耗只统计一次。每条谱系仍分别受 120,000 token 上限约束，不能用最终成功一轮的 token 数冒充全部开发成本。"
+        },
+        {
+          "section": "回归与保护",
+          "text": "- 当前完整回归 71/71，包括实际 stderr 可见性、重规划不重置累计预算和不改动父证据的测试。"
+        },
+        {
+          "section": "回归与保护",
+          "text": "- 原模板项目独立 Docker 复验 22/22，报告 `workspace_batch_vit_v2/coding/coding_c8a52f108d47c4227a8d/rechecks/20261019T141631321442Z/report.json`。"
+        },
+        {
+          "section": "回归与保护",
+          "text": "- 第一个从零成功项目经过独立 Q/V 检查强化后再次无 LLM 复验 22/22，报告 `workspace_batch_vit_v2/coding/coding_b47a5e29638086d91812_scratch_c_replanned_20261019/rechecks/20261019T143236882286Z/report.json`。"
+        },
+        {
+          "section": "回归与保护",
+          "text": "- 60 个受保护文件 SHA-256 全部一致，包括 `.env`、`.env.example`、IDEA、数据库、原有规格和最终项目等。论文、知识库、数据集和旧证据未删除。"
+        },
+        {
+          "section": "回归与保护",
+          "text": "参考审阅细节见 [参考代码与机制映射](CODING_REFERENCES_20261019.md)。"
+        }
+      ]
+    },
+    {
+      "original_document": "docs/DATASET_PREPARATION.md",
+      "sha256": "02a0b93dec0b0a21805a62ed3e3a1d44e9d6d959da28550e2312ed8d7171b0b3",
+      "tables": [],
+      "numeric_context": [
+        {
+          "section": "数据集准备与 Coding Agent 交接",
+          "text": "新 IDEA 的低成本规划使用 [plan-study 与 v2 契约](PRECODING_BENCHMARK.md)，无需重复旧题的40篇论文银标。下述 `prepare-experiment` 与五方法/128操作矩阵是既有 v1 主案例流程，继续保留兼容，不能据此认定新问题已经按任务参数化。"
+        },
+        {
+          "section": "数据集准备与 Coding Agent 交接",
+          "text": "当前可自动获取和验证的注册表包含 CIFAR-10、CIFAR-100、Flowers-102、Oxford-IIIT Pet、DTD，"
+        },
+        {
+          "section": "数据集准备与 Coding Agent 交接",
+          "text": "默认优先使用无需账号的公开 Hugging Face 镜像，固定 repo commit、校验 LFS SHA256，"
+        },
+        {
+          "section": "数据集准备与 Coding Agent 交接",
+          "text": "官方压缩包按 torchvision 记录的 MD5 校验，再记录 SHA256；支持 HTTPS、断点续传、失败重跑、"
+        },
+        {
+          "section": "数据集准备与 Coding Agent 交接",
+          "text": "- `datasets/<id>/array_native/`：CIFAR 的无损 uint8 RGB 数组，避免在 Windows 上创建六万个小文件；按 manifest 的 `numpy_rgb` loader/index 读取。"
+        },
+        {
+          "section": "数据集准备与 Coding Agent 交接",
+          "text": "- `datasets/flowers102/archive_native/`：Flowers 公开归档镜像中的原图；按原图编号与官方校验过的 `.mat` 标注恢复划分，不使用不明随机划分或假定行顺序。"
+        },
+        {
+          "section": "数据集准备与 Coding Agent 交接",
+          "text": "- `datasets/<id>/prepared/train_fraction_*.json`：固定、按类别嵌套的 10%/25%/100% 训练样本 ID。"
+        },
+        {
+          "section": "数据集准备与 Coding Agent 交接",
+          "text": "保持官方测试集不变；有官方验证集则保留，没有则只从训练池按类别划出 10%，split seed=42。"
+        },
+        {
+          "section": "数据集准备与 Coding Agent 交接",
+          "text": "在修改后的无重复协议下得到的结果不能直接宣称复现原论文或 VTAB-1K。"
+        },
+        {
+          "section": "数据集准备与 Coding Agent 交接",
+          "text": "当前设计为 20 次验证调参 + 90 次主实验 + 18 次消融；先小规模 smoke/pilot，再按阶段执行。"
+        },
+        {
+          "section": "数据集准备与 Coding Agent 交接",
+          "text": "完整 ViT-B/16 训练建议约 12GB 以上显存的 CUDA GPU；具体资源由运行阶段验证。"
+        }
+      ]
+    },
+    {
+      "original_document": "docs/FORMULA_AUTOMATION_V2.md",
+      "sha256": "39fdfe7d31d592d29b146f68b720ba03e732f8e7030c4adcfa2d25deb3948257",
+      "tables": [
+        {
+          "section": "真实论文重放",
+          "markdown": "| 论文 | 公式候选 | 原先源码一致 | 本轮源码一致 | 本轮源码恢复 | 剩余争议/待核验 |\n| --- | ---: | ---: | ---: | ---: | ---: |\n| ExPLoRA | 5 | 4 | 4 | 0 | 0 / 1 |\n| VPT | 2 | 0 | 0 | 0 | 2 / 0 |\n| C-LoRA | 4 | 0 | 0 | 4 | 0 / 0 |\n| 合计 | 11 | 4 | 4 | 4 | 2 / 1 |"
+        }
+      ],
+      "numeric_context": [
+        {
+          "section": "公式宏、向量符号与自动接入：v2实现和真实结果",
+          "text": "日期：2026-10-20。金标继续只保留接口，不增加人工标注。当前 coding 前闭环可作为"
+        },
+        {
+          "section": "本轮实现",
+          "text": "位置参数 `def`、`DeclareMathOperator`；支持嵌套调用、最多9个参数及一个可选默认参数。"
+        },
+        {
+          "section": "本轮实现",
+          "text": "分隔参数及不支持的控制命令不执行、不猜测。最多512步、16层、20000字符，源码最多1500个"
+        },
+        {
+          "section": "自动流程",
+          "text": "核验产物按输入/代码寻址，报告保留独立版本。自动核验默认最多处理128个区域，超出部分"
+        },
+        {
+          "section": "自动流程",
+          "text": "状态传到论文分析、L2/L3压缩、段落索引及公开 `plan-study`。公式节点保持独立，不会"
+        },
+        {
+          "section": "真实论文重放",
+          "text": "- **严格源码一致率**：仍为4/11，36.36%，不把恢复算成OCR变准。"
+        },
+        {
+          "section": "真实论文重放",
+          "text": "- **源码一致或可恢复比例**：4/11 → 8/11，36.36% → 72.73%。新增4处是C-LoRA的粗体矩阵/向量恢复。"
+        },
+        {
+          "section": "真实论文重放",
+          "text": "- **原图定位覆盖率**：11/11，分母仅为已有候选，不能解释为检测召回率。"
+        },
+        {
+          "section": "真实论文重放",
+          "text": "- **自动接入**：三篇均版本匹配；三篇第二次入库均命中核验缓存；11个公式节点和状态均保留到段落索引。"
+        },
+        {
+          "section": "真实论文重放",
+          "text": "- **证据Gate**：8个可带银标限定进入规划，3个被过滤；11个“公式单独支撑复现”的探测全部被拒绝，补充文字也不能解锁3个未解决公式。"
+        },
+        {
+          "section": "真实论文重放",
+          "text": "VPT的2处仍包含类文件重定义的向量命令、字体及编号/对齐差异；ExPLoRA的1处是数学与"
+        },
+        {
+          "section": "真实论文重放",
+          "text": "[metrics.json](../workspace_formula_automation_v2/491f4f8007db421481b8ca0599a0799e/metrics.json)，"
+        },
+        {
+          "section": "真实论文重放",
+          "text": "本轮完整回归124项通过，覆盖宏安全边界、符号区别/恢复、缓存损坏、区域延期、自动入库、"
+        },
+        {
+          "section": "真实论文重放",
+          "text": "最后补强缓存索引/适配输入完整性检查后，相关21项测试再次通过，三论文正式入口重放结果不变。"
+        }
+      ]
+    },
+    {
+      "original_document": "docs/FORMULA_VALIDATION.md",
+      "sha256": "8e66a63e39d7450b9cb6dfbf5a381dcee1b88e4aa03c1f187a96eb210f2492c9",
+      "tables": [
+        {
+          "section": "首轮真实试验",
+          "markdown": "| 论文、版本、页码 | 候选区域 | 原图可定位 | 初始获源码佐证 | 局部重识别后 | 最终争议 / 待核验 |\n| --- | ---: | ---: | ---: | ---: | ---: |\n| ExPLoRA，2406.10973v5，第3页 | 5 | 5 | 2 | 4 | 0 / 1 |\n| Visual Prompt Tuning，2203.12119v2，第4页 | 2 | 2 | 0 | 0 | 2 / 0 |\n| C-LoRA，2502.17920v2，第3页 | 4 | 4 | 0 | 0 | 4 / 0 |\n| 合计 | 11 | 11 | 2 | 4 | 6 / 1 |"
+        }
+      ],
+      "numeric_context": [
+        {
+          "section": "公式识别与交叉核验：首轮实现及真实试验",
+          "text": "后续v2已实现有界宏/向量处理和生产自动接入，见 [最新公式v2](FORMULA_AUTOMATION_V2.md)。"
+        },
+        {
+          "section": "公式识别与交叉核验：首轮实现及真实试验",
+          "text": "日期：2026-10-20。P1 已开始并完成公式子流程首轮实现；尚未完成独立金标准确率评测，也没有完成表格/图形核验。"
+        },
+        {
+          "section": "已实现",
+          "text": "- 仅对争议/待核验区域调用已缓存的本地 CodeFormulaV2，以更紧的原图裁剪重新识别，保存前后结果。该模型与主解析的公式识别器相同，不能当独立投票。可限制区域数和单区域生成 token。"
+        },
+        {
+          "section": "首轮真实试验",
+          "text": "范围在输出检查前记录于 `config/benchmarks/formula_pilot_v1.json`：三篇已有的领域论文，各选一页，不是随机/保留测试集。所有候选进入分母，没有仅计算通过区域。"
+        },
+        {
+          "section": "首轮真实试验",
+          "text": "三篇 PDF 与新下载的版本化源码身份/版本核对全部通过。初始和重识别后使用相同的最终规范化与判断代码，变化仅来自 ExPLoRA 中3个区域的局部重识别；另两篇本轮没有重识别。"
+        },
+        {
+          "section": "首轮真实试验",
+          "text": "- **原图定位覆盖率 100%（11/11）**：分母仅为检出的候选，不能解释为全部公式的检测召回率。"
+        },
+        {
+          "section": "首轮真实试验",
+          "text": "- **源码佐证率 18.18% → 36.36%（2/11 → 4/11）**：同版本源中存在规范化一致且无未解决命令的表达式，不是金标准确率。ExPLoRA 单页为40% → 80%；初版规范化曾有0/5，原始报告仍保留，不把规范化差异算进裁剪对照的增益。"
+        },
+        {
+          "section": "首轮真实试验",
+          "text": "- **最终争议率 54.55%（6/11）**：VPT 的向量标记/源码宏，C-LoRA 的粗体和向量/矩阵表示等差异仍未解决。不能因忽略粗体可提高字符串匹配率就自动抹去这些区别。"
+        },
+        {
+          "section": "首轮真实试验",
+          "text": "- **最终待核验率 9.09%（1/11）**：ExPLoRA 的数学文字混合区域缺少匹配的展示公式参考，不能直接判错。"
+        },
+        {
+          "section": "首轮真实试验",
+          "text": "- **局部改善实例**：主解析把公式编号和邻近文字混入 ExPLoRA 的式(1)，紧裁剪后得到与源一致的表达式；式(3)中的编号混入也消除。另一个数学文字混合区域仍未核验。"
+        },
+        {
+          "section": "首轮真实试验",
+          "text": "本轮未训练新模型、未使用收费 LLM/视觉 API，付费 API token 为0；本地模型实际生成 token 数未计量，不能说计算消耗为0。三页成功解析分别约218.59 / 126.66 / 203.32秒；局部3个区域推理约34.68 / 40.03 / 36.62秒。时间仅供资源说明，不作为科研质量指标。"
+        },
+        {
+          "section": "首轮真实试验",
+          "text": "首次 Docling 命令在200秒上限处超时，保留空输出目录；重试成功。原始解析产物中的 `max_formula_tokens=512` 是当时传入的模型设置，**不是有效上限**：核对本机 Docling 2.140.0 源码发现，该阶段为引擎输入设置2048；当前解析脚本已改为如实记录上游限制。独立局部重识别适配器的输入明确设置384。"
+        },
+        {
+          "section": "首轮真实试验",
+          "text": "原始输出位于 `workspace_formula_pilot_v1/`。首轮汇总是 `evaluation/f6ef18894f5c4fd184b5c4e432c9776d/metrics.json`；最终代码离线复算为 `evaluation/40b21cd732bd4a309d2b78029c86a7f6/metrics.json`，结果一致。每次复算产生独立目录。报告包含原文/解析/实现 hash、各区域原图和候选、源码位置及判断理由。"
+        },
+        {
+          "section": "首轮真实试验",
+          "text": "最终回归 **100项全部通过**，公开`validate-formulas`命令实跑成功。测试覆盖上下标/符号差异保留、源码版本/哈希不匹配降级、未展开宏不接受、不安全/过大源码拒绝、原点转换、原图裁剪与旧sidecar保留。此前回归曾发现首次sidecar返回路径的兼容性问题，已修复；未替换或删除原失败证据。"
+        }
+      ]
+    },
+    {
+      "original_document": "docs/IMPLEMENTATION_ROADMAP.md",
+      "sha256": "410696066c286850ab464bf58223d01388348dc3ceca2790bf6afc7ba9ed1a18",
+      "tables": [],
+      "numeric_context": [
+        {
+          "section": "实现路线图",
+          "text": "最新状态与恢复入口见 [route2.md](../route2.md)。当前已接通到 Coding Agent 工程验收，下一阶段是固定编码任务集评测和真实预训练 pilot，尚未执行完整正式科研实验。"
+        },
+        {
+          "section": "Phase 1：已完成",
+          "text": "- L0/L1/L2/L3 数据契约、版本、prompt/source hash 与 SQLite 压缩缓存。"
+        },
+        {
+          "section": "Phase 2：真实混合检索（已完成）",
+          "text": "- 建立 BM25 + dense 召回、cross-encoder reranker 和 MMR 去冗余。"
+        },
+        {
+          "section": "Phase 3：有界并行与恢复（已完成）",
+          "text": "- 已把顺序 `_acquire` 改为有界并行 DAG：L0/L1、源码/PDF 下载、解析、分析、L2。"
+        },
+        {
+          "section": "Phase 4：30 篇分层综合（已实测）",
+          "text": "- 30 篇 L1 fan-in 做第一轮覆盖与相关性筛选，再只为 shortlist 生成 L2。"
+        },
+        {
+          "section": "Phase 4：30 篇分层综合（已实测）",
+          "text": "- 按研究子问题对 shortlist 生成 L3 map 结果，再执行跨论文 reduce。"
+        },
+        {
+          "section": "Phase 4：30 篇分层综合（已实测）",
+          "text": "- 不把 30 份完整 L2 一次塞入 LLM；按 token 预算、证据覆盖和主题分组分批综合。"
+        },
+        {
+          "section": "Phase 5：固定评测集（银标和小规模诊断已完成，人工金标预留）",
+          "text": "- 建立 30–50 篇人工标注论文语料和固定 IDEA 集，冻结 train/dev/test 或版本化评测切分。"
+        }
+      ]
+    },
+    {
+      "original_document": "docs/PRECODING_BENCHMARK.md",
+      "sha256": "e78ac26c784b24e2e8145444dbfd7fb3c737a3c9aa122bef154ec932996c1cbe",
+      "tables": [],
+      "numeric_context": [
+        {
+          "section": "多 IDEA 的 coding 前评测与通用规划入口",
+          "text": "本轮实现 TODO2 的 P0：同领域多 IDEA 输入、任务驱动的实验契约、固定语料与联网两条评测轨道、独立银标裁判、全链预算和可恢复产物。当前支持领域是**小样本图像分类中的 ViT 参数高效微调研究规划**。公式交叉核验和 Skills 尚属后续事项。"
+        },
+        {
+          "section": "多 IDEA 的 coding 前评测与通用规划入口",
+          "text": "首轮具体结果和费用见 [2026-10-20 实测](PRECODING_RUN_20261020.md)：冻结 A 为6/12、B为1/4；接口修复后的12/12机械重放单列，不充当银标全通过。"
+        },
+        {
+          "section": "多 IDEA 的 coding 前评测与通用规划入口",
+          "text": "后续按用户要求优先验证质量、增加 token，用 [v4 预先固定协议](PRECODING_V4_PROTOCOL.md)"
+        },
+        {
+          "section": "多 IDEA 的 coding 前评测与通用规划入口",
+          "text": "运行六个新研究组合；旧十二题改为回归集。v4 使用实时查询规划、分批文献筛选、"
+        },
+        {
+          "section": "多 IDEA 的 coding 前评测与通用规划入口",
+          "text": "最终实跑：原轮新六题5/6；补齐通用运行时目录与诊断后，六题统一复验6/6，全部首版"
+        },
+        {
+          "section": "多 IDEA 的 coding 前评测与通用规划入口",
+          "text": "通过。原十二题回归12/12、输入变化4/4、边界4/4、87项测试通过。详见"
+        },
+        {
+          "section": "多 IDEA 的 coding 前评测与通用规划入口",
+          "text": "[最终结果与费用](PRECODING_V4_RESULTS.md) 和 [v4.1复验协议](PRECODING_V41_PROTOCOL.md)。"
+        },
+        {
+          "section": "使用新的自然语言 IDEA",
+          "text": "  --source workspace_batch_vit_v2 --token-cap 250000 `"
+        },
+        {
+          "section": "使用新的自然语言 IDEA",
+          "text": "  \"在 DTD 和 Pets 的 25% 标签上比较 LoRA rank 4 与 8，用相同 Q/V 适配范围和验证预算，报告精度与参数量取舍。\""
+        },
+        {
+          "section": "使用新的自然语言 IDEA",
+          "text": "也可用 `--idea-file` 读取 UTF-8 文本或结构化 IDEA JSON。这条入口不读取评测清单，也不要求为新 IDEA 重做旧题的40篇银标。它复制共享数据库到独立输出工作区，按新问题检索原文、规划、编译、机械检查和独立评审。已完成调用按任务、证据、模型、提示词 hash 缓存；相同请求恢复不重复收费。"
+        },
+        {
+          "section": "使用新的自然语言 IDEA",
+          "text": "`plan-study` 已复用与 v4 相同的“批评—修订—最终独立评审”流程；默认预算"
+        },
+        {
+          "section": "使用新的自然语言 IDEA",
+          "text": "250,000 token。它使用给定共享语料，实时获取全过程评测使用下面的 `--robust --phase B`。"
+        },
+        {
+          "section": "使用新的自然语言 IDEA",
+          "text": "原 `prepare-experiment` 保留旧案例与 v1 契约兼容；新任务应使用 `plan-study`。v2 能表达精确 LoRA block 索引、逐组 rank/alpha/dropout/weight decay、shallow prompt 数、adapter 宽度、NLL/可靠性统计及共享 rank 选择策略。现有 v1 Coding Agent 执行器尚未扩展为这些新实验组的通用执行器；本轮终点在 coding 前。"
+        },
+        {
+          "section": "评测与恢复",
+          "text": "  --suite config/benchmarks/precoding_heldout_v2.json `"
+        },
+        {
+          "section": "评测与恢复",
+          "text": "  --output workspace_precoding_v4_heldout --phase B --token-cap 3000000"
+        },
+        {
+          "section": "修复版统一复验的实际产物（同一工作区再次执行时复用六题，不新增模型调用）",
+          "text": "  --suite config/benchmarks/precoding_heldout_v2.json `"
+        },
+        {
+          "section": "修复版统一复验的实际产物（同一工作区再次执行时复用六题，不新增模型调用）",
+          "text": "  --output workspace_precoding_v41_revalidation_live --phase B --token-cap 1000000"
+        },
+        {
+          "section": "要另起一轮，换新输出目录；导入同题已真实完成且哈希校验的获取断点",
+          "text": "  --suite config/benchmarks/precoding_heldout_v2.json `"
+        },
+        {
+          "section": "要另起一轮，换新输出目录；导入同题已真实完成且哈希校验的获取断点",
+          "text": "  --output workspace_my_v41_revalidation --phase B --token-cap 1000000 `"
+        },
+        {
+          "section": "要另起一轮，换新输出目录；导入同题已真实完成且哈希校验的获取断点",
+          "text": "  --reuse-acquisition-from workspace_precoding_v4_heldout"
+        },
+        {
+          "section": "边界处理，以及额外的四组成对变化和开发任务消融",
+          "text": "`all` 依次运行 A、边界、B 和额外检查。达到预算时不追加额度。所有预定的12题 A、4题 B 和4个边界任务始终列入报告；未开始、失败和预算阻塞不从分母移除。额外检查不是独立研究题，不增加12题的分母。调用出错后的未知 usage 保留上界预留。没有模型调用重试的隐藏费用。"
+        },
+        {
+          "section": "边界处理，以及额外的四组成对变化和开发任务消融",
+          "text": "本轮 v2 冻结代码保存在 `workspace_precoding_v2/source_snapshot/project/`。当前源码已包含后续接口修复，恢复这轮历史任务时加 `--use-frozen-code`。`boundary-batch` 可用共享上下文的两次调用处理四题边界并明确标记这一口径；`replay`/`replay-review` 保存单独的接口修复重放，后者的新增评审仍使用原累计账本，不覆盖原始分数。"
+        },
+        {
+          "section": "指标的含义",
+          "text": "训练 job 与最终测试评估分开计数：每 dataset/arm/fraction/seed 两个 LR 候选训练，选择验证集最优 checkpoint，再作一次测试评估，**不追加重训练**。例如 rank 三组 × 两数据集 × 三种子是36次候选训练和18次测试评估，共54个操作，并非54次正式训练。"
+        },
+        {
+          "section": "指标的含义",
+          "text": "NLL 使用稳定 logsumexp 重算；ECE 固定15等宽 bin，保存 logits/labels 和各 bin 的 count/accuracy/confidence。共享 rank 与逐数据集 rank 策略复用相同训练候选池，按每个 seed 的验证表现选型，禁止测试集参与。"
+        },
+        {
+          "section": "节省 token 的范围",
+          "text": "共享30篇既有 PDF、解析节点、神经索引与数据 manifest。新增论文通用卡是按 source/parser/提取器版本缓存的**原文摘录导航**，不冒称已验证的语义总结；本轮不为每题重付30篇全文阅读和40篇论文银标费用。每题重新检索证据、生成提案和独立评审，相关判断不沿用旧题缓存。"
+        },
+        {
+          "section": "节省 token 的范围",
+          "text": "本轮使用紧凑提案和评审摘要；完整原文和实验契约保留于磁盘。历史获取成本与本轮新增成本分开，模型账单金额无价格依据时保留 null。复用旧材料的 A 不代表在线获取；B 是缓存辅助联网流程，不称完全冷启动，也不称每题30篇全文。"
+        },
+        {
+          "section": "源码入口",
+          "text": "- `experiments/planning.py`：通用规划提示、宿主训练协议、数据目录与 v2 契约编译，无评测 IDEA ID。"
+        }
+      ]
+    },
+    {
+      "original_document": "docs/PRECODING_RUN_20261020.md",
+      "sha256": "a1e7686a89e2a2c969e9c5735d3470cd22aa3dc32294d6da9c895fdba5ca58d2",
+      "tables": [
+        {
+          "section": "主结果：保留原冻结版本分数",
+          "markdown": "| 轨道 | 机械就绪 | 银标计划接受 | 预算内端到端成功 |\n| --- | ---: | ---: | ---: |\n| A：固定30篇语料上的12题 | 8/12（66.7%） | 6/12（50.0%） | 6/12（50.0%） |\n| B：四题缓存辅助真实联网 | 2/4（50.0%） | 2/4（50.0%） | 1/4（25.0%） |"
+        },
+        {
+          "section": "主结果：保留原冻结版本分数",
+          "markdown": "| 题目 | 变化因素 | 原机械 | 原银标 | 修复后机械重放 | 操作数（候选训练+最终评估） |\n| --- | --- | --- | --- | --- | ---: |\n| V01 | rank 2/8/16 | 通过 | 通过 | 通过 | 54 |\n| V02 | dropout 0/0.1 | 指标名不兼容 | 未评审 | 通过 | 36 |\n| V03 | 最后3/6层与全部12层 | 通过 | 通过 | 通过 | 54 |\n| V04 | shallow prompt 5/10/20 | 通过 | 通过 | 通过 | 72 |\n| V05 | adapter宽度16/32/64 | 通过 | 未接受 | 通过 | 72 |\n| V06 | weight decay 0/0.05 | 指标名不兼容 | 未评审 | 通过 | 36 |\n| V07 | 10%标签 LoRA/full/probe | 通过 | 通过 | 通过 | 54 |\n| V08 | 25%/100%标签交互 | 通过 | 通过 | 通过 | 72 |\n| V09 | DTD/Pets分数据集增益 | JSON尾部多余字符 | 未评审 | 通过 | 36 |\n| V10 | VPT/adapter/probe | 通过 | 未接受 | 通过 | 54 |\n| V11 | ECE/NLL校准 | 指标名不兼容 | 未评审 | 通过 | 36 |\n| V12 | 分数据集/共享rank选型 | 通过 | 通过 | 通过 | 54 |"
+        },
+        {
+          "section": "成本、回归与未完成项",
+          "markdown": "| 范围 | 已知实际token | 未知用量保守预留 | 合计计入上限 |\n| --- | ---: | ---: | ---: |\n| 首次沙箱阻断 | 0 | 37,209 | 37,209 |\n| v1两题开发试点 | 39,866 | 0 | 39,866 |\n| v2完整主评测、边界和补充评审 | 213,310 | 0 | 213,310 |\n| 全轮 | **253,176** | **37,209** | **290,385 / 300,000** |"
+        }
+      ],
+      "numeric_context": [
+        {
+          "section": "多 IDEA coding 前实测：2026-10-20",
+          "text": "已实现并实际运行 TODO2 的问题1/2。结果支持 ViT 小样本参数高效微调领域的**初步多问题规划能力**，同时显示当前语义计划验收和联网获取稳定性仍有限。不能把机械完整性当科研正确率，也不能将这轮结果描述为稳定的全自动科研成功。"
+        },
+        {
+          "section": "实现与固定条件",
+          "text": "- 输入采用已有12个正向 IDEA（4 dev、8 test）和4个边界请求；评测预期不进入规划提示或知识库。"
+        },
+        {
+          "section": "实现与固定条件",
+          "text": "- 新增 `plan-study` 自然语言入口、同领域 v2 契约编译器、A/B 运行器、独立评审、全链账本和恢复。编译器不按 IDEA ID 写答案。"
+        },
+        {
+          "section": "实现与固定条件",
+          "text": "- 共享30篇已解析全文、本地神经混合检索索引、原文摘录导航卡和已有数据 manifest；每题重新取证与规划，不为每题重跑30篇全文分析/40篇论文银标。"
+        },
+        {
+          "section": "实现与固定条件",
+          "text": "- A 的材料、模型、prompt/rubric、代码、IDEA/评测清单与数据状态均在执行前固定 hash。模型为 `.env` 已配置的 `gpt-6-sol`；生成和裁判为不同调用，同模型相关偏差仍存在。标签是 LLM 银标，无人工金标。"
+        },
+        {
+          "section": "实现与固定条件",
+          "text": "- v1开发试点仅运行 V01/V04。两题均因计划文字与宿主训练协议不一致而未通过，保留原始失败后修正协议和紧凑输出，再冻结 v2 跑全部题。没有根据保留测试结果反复改规划 prompt 并覆盖原分数。"
+        },
+        {
+          "section": "主结果：保留原冻结版本分数",
+          "text": "A 的 dev 是2/4、test是4/8。未评审、接口失败和预算阻塞均留在总分母内。B 的成功仅来自开发任务，两个保留测试任务受预算准入阻塞，不能声称已有保留测试题联网成功率证据。"
+        },
+        {
+          "section": "主结果：保留原冻结版本分数",
+          "text": "不同题的实际方法、参数、目标 block、标签比例、指标、选型策略和任务矩阵不同，并非修改标题后复制旧128项规格。上述操作数均为**尚未执行的计划操作**。两次候选训练后复用最优验证 checkpoint 作测试评估，不额外重训练。"
+        },
+        {
+          "section": "主结果：保留原冻结版本分数",
+          "text": "- `vit_rank_tradeoff` 通过：取得12篇相关有效全文，11篇复用已有材料，新增1篇在整轮快照中不存在的相关 PDF，完成解析、取证、规格与独立评审。"
+        },
+        {
+          "section": "主结果：保留原冻结版本分数",
+          "text": "- `vit_vpt_prompt_length` 的计划通过机械/银标，但只筛出1篇合格全文，未达到预定8篇获取门槛，因此整题失败。"
+        },
+        {
+          "section": "主结果：保留原冻结版本分数",
+          "text": "- `vit_lora_weight_decay`、`vit_calibration_comparison` 执行了发现阶段，但相关性模型调用的保守预留无法准入；未完成获取与规划，按失败/预算阻塞计入4题分母。"
+        },
+        {
+          "section": "主结果：保留原冻结版本分数",
+          "text": "这是缓存辅助的轻量联网验收，不是完全冷启动，也不是每题30篇全文。"
+        },
+        {
+          "section": "接口修复的补充结果，独立保存",
+          "text": "复用12题已保存的输出、**不再生成计划**，修复后机械 Gate 与任务约束为 **12/12**。这个数表示数据/引用/任务契约完整，并不表示银标接受或科学正确率100%。原来未评审的题仍是 unknown，不自动补成通过。"
+        },
+        {
+          "section": "接口修复的补充结果，独立保存",
+          "text": "评审摘要现包含完整的已编译方法与指标定义，解决原摘要漏掉 adapter 插入点/GELU 的问题。剩余预算只准入一次 V05 补充独立评审；它仍因“不劣于宽adapter”的区间判据不够可操作而未接受。其余补充评审预算准入失败，当前银标接受数仍为6/12。补充重放是接口修复后的再检查，**不是新的独立保留测试成绩**。"
+        },
+        {
+          "section": "边界与恢复",
+          "text": "四个边界任务均返回 `blocked`、`needs_adapter` 或 `needs_refinement`，没有生成越领域、测试集选参、伪造精确公式或1秒CPU完成正式训练的 ready 规格：**安全阻塞4/4**。"
+        },
+        {
+          "section": "边界与恢复",
+          "text": "严格独立银标仅为 **1/4**：其他三题的替代方案未明确写出“需要变更哪条用户原约束”，因此不计严格通过。后续公开入口已增加结构化 `alternative.requires_constraint_change` 和 `changed_constraints` 字段；本轮未重新付费测试该提示改动。边界任务为节省预算采用四题共享上下文的一次生成与一次独立评审，不声称四题是完全独立的模型上下文。"
+        },
+        {
+          "section": "边界与恢复",
+          "text": "实际用冻结源代码重新运行 A：12/12个已完成任务产物复用，新增模型调用0、新增token0。未知用量预留/累计预算不重置的中断恢复行为另有单元测试，未故意中止收费模型调用制造数据。"
+        },
+        {
+          "section": "成本、回归与未完成项",
+          "text": "已知输入210,967、输出42,209 token；35次请求尝试，其中2次沙箱连接失败保留未知预留。模型调用 wall time 合计793.075秒，另有本地检索、解析和网络获取耗时，逐任务记录在原始产物中。没有价格依据，不换算成金额。历史30篇语料和数据取得成本不计为本轮新增消费，也不声称为零。"
+        },
+        {
+          "section": "成本、回归与未完成项",
+          "text": "相同两题开发试点的规划+评审从39,866降到32,036 token，减少约19.6%。这个比较同时改变协议约束和输入/输出压缩，不能将收益单独归因于 RAG。恢复完成任务新增token为0。没有做模型微调训练，不声称测得了训练token节省率。"
+        },
+        {
+          "section": "成本、回归与未完成项",
+          "text": "完整回归 **83/83**。离线重验原始10份已冻结契约，10/10机械检查通过，26个引用可定位；这不是语义支持准确率。补充重放另外保存12题契约。"
+        },
+        {
+          "section": "成本、回归与未完成项",
+          "text": "预算内未执行额外4个自然语言成对变化测试和8个摘要/BM25消融运行，不能声称测得 Contrastive Responsiveness 或 RAG 消融质量收益。仍需改善语义判定规则、扩大部分任务的相关语料、压缩联网候选筛选和裁判成本，再用新版本未见题验证稳定性。"
+        },
+        {
+          "section": "证据与复跑",
+          "text": "- [冻结主报告](../workspace_precoding_v2/report.json)、[逐题简表](../workspace_precoding_v2/task_summary.json)"
+        },
+        {
+          "section": "证据与复跑",
+          "text": "- [跨试点总账与机械审计](../workspace_precoding_v2/audit.json)"
+        },
+        {
+          "section": "证据与复跑",
+          "text": "- [接口修复补充重放](../workspace_precoding_v2/supplementary/report.json)"
+        },
+        {
+          "section": "证据与复跑",
+          "text": "- [边界提案](../workspace_precoding_v2/boundary_batch/proposals.json)、[独立评审](../workspace_precoding_v2/boundary_batch/reviews.json)"
+        },
+        {
+          "section": "证据与复跑",
+          "text": "- [实际恢复验证](../workspace_precoding_v2/recovery.json)"
+        },
+        {
+          "section": "证据与复跑",
+          "text": "- [v1开发试点失败](../workspace_precoding_v1_live/report.json)、[沙箱失败预留](../workspace_precoding_v1/report.json)"
+        },
+        {
+          "section": "重新做离线机械/总账核验，不调用模型",
+          "text": "新代码包含冻结测试后修复，另起新工作区时使用当前代码；不要覆盖 v2 历史结果。一般用法见 [评测与规划指南](PRECODING_BENCHMARK.md)。"
+        }
+      ]
+    },
+    {
+      "original_document": "docs/PRECODING_V41_PROTOCOL.md",
+      "sha256": "cb542a67a9d6a75bfebbe7a6992072ca3c051067f2a6f0adadadccd16fa0fcdf",
+      "tables": [],
+      "numeric_context": [
+        {
+          "section": "Runtime-interface repair and complete checkpoint revalidation",
+          "text": "Frozen before v4.1 paid calls on 2026-10-20. All six original new-composition tasks"
+        },
+        {
+          "section": "Runtime-interface repair and complete checkpoint revalidation",
+          "text": "The first v4 run exposed a generic interface defect: the planner did not receive"
+        },
+        {
+          "section": "Runtime-interface repair and complete checkpoint revalidation",
+          "text": "names. H04 exhausted four attempts and failed; its full original result is kept."
+        },
+        {
+          "section": "Runtime-interface repair and complete checkpoint revalidation",
+          "text": "This is not a newly unseen set after repair, and v4.1 results must not be described"
+        },
+        {
+          "section": "Runtime-interface repair and complete checkpoint revalidation",
+          "text": "v4.1 exposes actual supported metrics/aliases and method defaults derived from the"
+        },
+        {
+          "section": "Runtime-interface repair and complete checkpoint revalidation",
+          "text": "search/download/parse/task-relevance stages from v4's checkpoints after verifying"
+        },
+        {
+          "section": "Runtime-interface repair and complete checkpoint revalidation",
+          "text": "separate `workspace_precoding_v41_revalidation_live` ledger, cap 1,000,000 tokens."
+        },
+        {
+          "section": "Runtime-interface repair and complete checkpoint revalidation",
+          "text": "The initial `workspace_precoding_v41_revalidation` launch was blocked by sandbox"
+        },
+        {
+          "section": "Runtime-interface repair and complete checkpoint revalidation",
+          "text": "network access (four WinError10013 attempts, zero known actual usage); retain its"
+        },
+        {
+          "section": "Runtime-interface repair and complete checkpoint revalidation",
+          "text": "267,131-token conservative reservation separately. Real execution uses explicitly"
+        },
+        {
+          "section": "Runtime-interface repair and complete checkpoint revalidation",
+          "text": "approved network access. Empty boundary tracks have rate=null, not a fabricated 0/0."
+        },
+        {
+          "section": "Runtime-interface repair and complete checkpoint revalidation",
+          "text": "fresh second discovery runs. Report original v4 scores AND repaired revalidation"
+        }
+      ]
+    },
+    {
+      "original_document": "docs/PRECODING_V4_PROTOCOL.md",
+      "sha256": "be210a5ff1c55237ed8ef9c0edef6b6c15a215fd14ff98b4093f0cfd71db0fee",
+      "tables": [],
+      "numeric_context": [
+        {
+          "section": "2026-10-20 prospective pre-coding protocol",
+          "text": "The user has authorized higher LLM usage. New run cap: 3,000,000 tokens, separate"
+        },
+        {
+          "section": "2026-10-20 prospective pre-coding protocol",
+          "text": "Primary evaluation: all six tasks in `precoding_heldout_v2.json`, authored/frozen"
+        },
+        {
+          "section": "2026-10-20 prospective pre-coding protocol",
+          "text": "before any v4 paid calls. These combine factors not combined in the previous"
+        },
+        {
+          "section": "2026-10-20 prospective pre-coding protocol",
+          "text": "twelve tasks and include CIFAR100/Flowers102. They remain an internally authored"
+        },
+        {
+          "section": "2026-10-20 prospective pre-coding protocol",
+          "text": "least one PDF hash absent the original 30-paper corpus; recompute task evidence;"
+        },
+        {
+          "section": "2026-10-20 prospective pre-coding protocol",
+          "text": "Primary performance: final end-to-end success / 6. Also report first-pass success,"
+        }
+      ]
+    },
+    {
+      "original_document": "docs/PRECODING_V4_RESULTS.md",
+      "sha256": "693b182af048fccb75a8a63d3dfcd9f10f831f795f1c1b7f301f037003f786fd",
+      "tables": [
+        {
+          "section": "已完成的回归和输入变化检验",
+          "markdown": "| 检验 | 首次通过 | 修订后最终通过 | 证据 |\n| --- | ---: | ---: | --- |\n| 原十二个 idea，固定语料回归 | 8/12 | 12/12 | `workspace_precoding_v4_regression/report.json` |\n| 输入变化检验 | 2/4 | 4/4 | `workspace_precoding_v4_contrastive_live/contrastive.json` |\n| 边界处理 | 4/4 | 4/4 | `workspace_precoding_v4_boundary/report.json` |"
+        },
+        {
+          "section": "六个新组合的主评测",
+          "markdown": "| 任务 | 实质变化 | 相关全文 / 相对原语料新增 | 原轮 | v4.1统一复验 |\n| --- | --- | ---: | --- | --- |\n| H01 | rank × dropout 四格交互，加 linear probe | 29 / 11 | 首版方案通过，基础设施恢复单列 | 首版通过 |\n| H02 | VPT/adapter × 10%/100% 标签交互 | 18 / 9 | 第二版通过，修正 VPT LR 冲突 | 首版通过 |\n| H03 | rank × block 范围交互 | 28 / 17 | 首版通过 | 首版通过 |\n| H04 | 多类 PEFT 的 NLL 主终点与校准 | 38 / 24 | 四版失败，运行时指标名称信息缺失 | 首版通过 |\n| H05 | CIFAR100、Flowers102 新数据集上的适配收益 | 29 / 20 | 首版通过 | 首版通过 |\n| H06 | adapter 宽度 × weight decay 交互 | 53 / 34 | 第二版通过，修正 adapter LR 冲突 | 首版通过 |"
+        },
+        {
+          "section": "费用与复核",
+          "markdown": "| 运行 | 已知实际 token | 模型请求数 |\n| --- | ---: | ---: |\n| 新六题原轮，含真实获取和失败修订 | 1,881,357 | 284 |\n| v4.1六题统一复验 | 401,609 | 18 |\n| 旧十二题回归 | 995,358 | 46 |\n| 边界四题 | 61,658 | 12 |\n| 输入变化四题 | 354,376 | 16 |\n| 合计 | **3,694,358** | **376** |"
+        }
+      ],
+      "numeric_context": [
+        {
+          "section": "ViT PEFT 领域 coding 前质量评测：2026-10-20",
+          "text": "已完成真实运行：新六题原轮 **5/6**；补齐通用运行时接口后，六题采用相同修复版"
+        },
+        {
+          "section": "ViT PEFT 领域 coding 前质量评测：2026-10-20",
+          "text": "流程统一复验 **6/6，且复验六题均首版通过**。旧十二题回归12/12、输入变化4/4、"
+        },
+        {
+          "section": "ViT PEFT 领域 coding 前质量评测：2026-10-20",
+          "text": "边界4/4。支持“小样本图像分类中预训练 ViT 参数高效适配的 coding 前研究规划"
+        },
+        {
+          "section": "ViT PEFT 领域 coding 前质量评测：2026-10-20",
+          "text": "原轮全部尝试保存在 `workspace_precoding_v4_heldout/`；统一复验位于"
+        },
+        {
+          "section": "ViT PEFT 领域 coding 前质量评测：2026-10-20",
+          "text": "`workspace_precoding_v41_revalidation_live/`。获取阶段真实联网，复验使用各题原有"
+        },
+        {
+          "section": "已实现的调整",
+          "text": "30 篇语料的新 PDF；没有降低获取门槛。不同任务允许复用新论文，但必须重做相关性判断。"
+        },
+        {
+          "section": "已实现的调整",
+          "text": "传入评测预期答案。公开 `plan-study` 复用相同的修订流程，默认预算为 250,000 token。"
+        },
+        {
+          "section": "已实现的调整",
+          "text": "源码已修复这一问题，原运行源码快照保留。87 项工程测试通过。"
+        },
+        {
+          "section": "已实现的调整",
+          "text": "没有重写其科研结果。最终复验全部完成后真实续跑一次，6/6 复用，新增调用和 token 为零。"
+        },
+        {
+          "section": "已完成的回归和输入变化检验",
+          "text": "回归集中的 22/22 处论文事实引用可定位且 source hash 正确，最终评审对其支持性"
+        },
+        {
+          "section": "已完成的回归和输入变化检验",
+          "text": "均为 supported；输入变化检验为 7/7。机械检查与两次最终语义评审逐项复核通过。"
+        },
+        {
+          "section": "已完成的回归和输入变化检验",
+          "text": "四项输入变化分别正确变为 rank4/8、prompt5/10、25% 标签和 NLL 唯一主指标。"
+        },
+        {
+          "section": "六个新组合的主评测",
+          "text": "输入与验收清单在新付费调用前冻结，见 `config/idea_library_vit_peft_heldout_v2.json`"
+        },
+        {
+          "section": "六个新组合的主评测",
+          "text": "和 `config/benchmarks/precoding_heldout_v2.json`。六项始终保留在分母中。"
+        },
+        {
+          "section": "六个新组合的主评测",
+          "text": "六题合计核验75篇不同相关全文，其中51篇的 PDF hash 不在原始30篇语料中。"
+        },
+        {
+          "section": "六个新组合的主评测",
+          "text": "最终六份规格、数据子集/manifest、引用和七项双评审均通过；14/14处论文事实引用"
+        },
+        {
+          "section": "六个新组合的主评测",
+          "text": "H05 的规格确实使用 CIFAR100（100类）和 Flowers102（102类）的25%子集。"
+        },
+        {
+          "section": "六个新组合的主评测",
+          "text": "六题方案的操作数分别为90、108、90、72、54、90，共504个计划操作，包含336次"
+        },
+        {
+          "section": "六个新组合的主评测",
+          "text": "候选训练与168次所选 checkpoint 测试评估。这些是方案的任务网格，**本轮未执行训练**。"
+        },
+        {
+          "section": "六个新组合的主评测",
+          "text": "原轮科学方案首版3/6通过，计入H01日志故障后的首次完整流程为2/6；最终5/6。"
+        },
+        {
+          "section": "六个新组合的主评测",
+          "text": "v4.1 的6/6是修复后复验的首版通过率，不替换原轮的首次表现。"
+        },
+        {
+          "section": "六个新组合的主评测",
+          "text": "H04 发现的通用接口缺口已修复：规划器现可读取真实支持的指标/别名，以及从"
+        },
+        {
+          "section": "六个新组合的主评测",
+          "text": "预期答案。按照 [v4.1 预先固定复验协议](PRECODING_V41_PROTOCOL.md)，对全部六题"
+        },
+        {
+          "section": "费用与复核",
+          "text": "另有八次沙箱网络阻断的未知 usage 预留：输入变化初次启动281,585，复验初次启动"
+        },
+        {
+          "section": "费用与复核",
+          "text": "267,131，合计548,716。分别保存在 `workspace_precoding_v4_contrastive/ledger.json`"
+        },
+        {
+          "section": "费用与复核",
+          "text": "和 `workspace_precoding_v41_revalidation/ledger.json`，没有删除或将未知用量算成零。"
+        },
+        {
+          "section": "费用与复核",
+          "text": "全部384次请求尝试合计计入保守预留后4,243,074 token。成功联网的五组账本均无"
+        },
+        {
+          "section": "费用与复核",
+          "text": "未知 usage。主轮在原3,000,000上限内，统一复验在独立1,000,000上限内。"
+        },
+        {
+          "section": "费用与复核",
+          "text": "历史 v1/v2 全部结果、失败、未知预留、PDF、数据库和数据集保持原位；不增加旧账本上限。"
+        },
+        {
+          "section": "费用与复核",
+          "text": "`tasks/<key>/attempts/`、`proposal.json`、`frozen_spec.json`、两次评审和 `audit_v4.json`。"
+        },
+        {
+          "section": "费用与复核",
+          "text": "  workspace_precoding_v41_revalidation_live workspace_precoding_v4_heldout workspace_precoding_v4_regression `"
+        },
+        {
+          "section": "费用与复核",
+          "text": "  workspace_precoding_v4_boundary workspace_precoding_v4_contrastive_live"
+        },
+        {
+          "section": "费用与复核",
+          "text": "Skills 封装仍是下一阶段。机器可读汇总见 [最终指标](PRECODING_V4_METRICS.json)。"
+        }
+      ]
+    },
+    {
+      "original_document": "docs/PROJECT_SCOPE.md",
+      "sha256": "2cd4576c81a088465320f700bdd61c9d4dbe98525041a6efdcf732532e95281a",
+      "tables": [],
+      "numeric_context": [
+        {
+          "section": "产品定位",
+          "text": "系统已经能基于 BM25、神经 dense embedding、cross-encoder 和 MMR 检索全文节点，生成带节点引用的 baseline 适用性分析，缓存版本化 L0/L1/L2/L3 压缩，并执行 30 篇跨论文综合和 40 篇 LLM 银标评测。新增的数据准备与实验规格冻结针对当前 ViT 微调任务接通，原生数据适配器覆盖五个图像分类数据集。人工金标保留待做，不将银标当作金标；Coding Agent 与训练验证闭环尚未接入。"
+        },
+        {
+          "section": "与 Plato 的初步关系",
+          "text": "1. 是否首次把查询级容差逆向转换为分段和表示的预算约束；"
+        },
+        {
+          "section": "与 Plato 的初步关系",
+          "text": "2. 是否联合优化压缩数据、误差摘要和预期查询路径，而非只优化其中一项；"
+        },
+        {
+          "section": "与 Plato 的初步关系",
+          "text": "3. 多粒度摘要对部分范围查询的界收紧是否足以抵消额外空间；"
+        },
+        {
+          "section": "与 Plato 的初步关系",
+          "text": "4. 所谓 100% coverage 是否由可证明上界及真实误差核验共同支持；"
+        },
+        {
+          "section": "与 Plato 的初步关系",
+          "text": "5. 与 workload-aware storage、query-aware compression、progressive decoding 等邻近工作相比还剩什么贡献。"
+        },
+        {
+          "section": "后续实验草案",
+          "text": "主要硬指标包括确定性界覆盖率、界宽/真实误差比、压缩率、误差元数据开销、p50/p95 查询延迟、局部解码比例和综合目标值。100% coverage 是硬 Gate；其余指标不能通过加权平均掩盖越界。"
+        }
+      ]
+    },
+    {
+      "original_document": "docs/RAG_CPU_USAGE.md",
+      "sha256": "79d0c11d4f987046fcff4b9e8a195cb6e6551abee16b4c862fdf697dee83e894",
+      "tables": [],
+      "numeric_context": [
+        {
+          "section": "无 CUDA 的检索与研究方案改进",
+          "text": "后续已增加旧/新两路融合路径 `--retrieval-strategy fusion`，本轮指标与局限见 [融合结果](RAG_FUSION_V1_RESULTS.md)，命令见 [融合用法](RAG_FUSION_USAGE.md)。下文为首个CPU改进版本。"
+        },
+        {
+          "section": "方案与参考",
+          "text": "先阅读 `../references2_structure` 中 1、2 类项目的 README，再查看 STORM `TopicExpert.forward` 的多问题检索、OpenScholar 的每篇片段限制及反馈编辑、PaperQA 的条件证据筛选，以及 SciAgents 的假设展开与批评思路。将这些流程机制适配为本项目模块，没有导入上游完整运行时，也没有复制其模型权重或声称复现其论文成绩。autodiscovery 的执行/训练路线不在本轮范围。"
+        },
+        {
+          "section": "方案与参考",
+          "text": "1. 主查询加机制、比较、边界三个查询，融合 BM25 与向量排名；重排前限制单篇占用，避免某篇长论文挤满候选。"
+        },
+        {
+          "section": "方案与参考",
+          "text": "2. 在 CPU 上用已有交叉编码器重排，包含标题和段落；优先提供不同论文，再补充同篇上下文。"
+        },
+        {
+          "section": "方案与参考",
+          "text": "3. 从原文提取带角色的证据卡，逐字检查引用片段；研究蓝图明确假设、控制、公平预算、数据隔离、判定条件和不确定性。"
+        },
+        {
+          "section": "方案与参考",
+          "text": "4. 公开规划器继续经过契约编译、机械检查、批评修订和最终独立调用审查；评测中的简短研究回答另有最多一次修改和补充检索。"
+        },
+        {
+          "section": "方案与参考",
+          "text": "5. 按内容和实际本地模型 checkpoint 缓存向量、重排对；新增论文只编码新增内容，同 PDF 的文本修正也会使对应缓存失效。"
+        },
+        {
+          "section": "评测与扩库",
+          "text": "冻结协议见 [评测协议](RAG_CPU_V3_PROTOCOL.md)，结果见 [真实结果](RAG_CPU_V3_RESULTS.md)。三组输出重新生成并匿名比较：旧检索、只改检索、新检索加规划改进。额外内部调用单列，不能把整组收益都归因于检索，也不称总 token 等预算对照。"
+        },
+        {
+          "section": "评测与扩库",
+          "text": "在 87→89→92→94 篇四个快照中固定同一批问题，分别计算当前语料、完整 94 篇、旧 87 篇和新 7 篇的相关性分母。预先设定旧题前十召回下降 0.03、排序质量下降 0.05 的容差；超限必须报告。缓存一致性和新增编码量另行验证，不能用缓存命中代替质量检查。"
+        }
+      ]
+    },
+    {
+      "original_document": "docs/RAG_CPU_V3_PROTOCOL.md",
+      "sha256": "179cc911d28e962f2e026b53e36d88be3f37898f1f3ff4c4de37cf62446126e0",
+      "tables": [],
+      "numeric_context": [
+        {
+          "section": "CPU 检索与研究方案改进：开发评测协议",
+          "text": "2026-10-20，在查看本轮新检索/生成结果前冻结。复用已读过的6个idea/12问与完整全文银标；属于开发对照，不能称新的外部保留测试。"
+        },
+        {
+          "section": "CPU 检索与研究方案改进：开发评测协议",
+          "text": "方法：独立内容哈希缓存的CPU向量/稀疏索引；主查询加机制/对照/边界三查询，倒数排名融合；重排前每篇最多3段、每问最多72段；交叉编码器输入含标题，优先输出不同论文；证据卡需原文逐字匹配；研究蓝图与最多一次评审修订/证据缺口检索。不训练模型，不要求CUDA，保留原系统作对照。"
+        },
+        {
+          "section": "CPU 检索与研究方案改进：开发评测协议",
+          "text": "参考：先读README，再查STORM的`TopicExpert.forward`、OpenScholar的每篇片段限制和反馈编辑、PaperQA2的证据筛选流程、SciAgents的方案展开/批评思路。按本项目预算/trace/引用接口实现，不引入这些项目的完整运行时。参考不是其模型性能在本项目上的背书。"
+        },
+        {
+          "section": "CPU 检索与研究方案改进：开发评测协议",
+          "text": "检索：同一94篇/7757段语料，同一主查询与同一CPU模型。旧完整RAG vs 新检索。新检索的额外查询规划成本单列。按PDF/source哈希顺序将新增7篇分成2/3/2篇三批，形成87→89→92→94四个快照。每阶段报告当前语料、固定94篇分母、新7篇分母和旧87篇分母的前十论文Recall/MRR/nDCG；禁止未来论文进入早期结果。重复最终检索验证缓存一致性。"
+        },
+        {
+          "section": "CPU 检索与研究方案改进：开发评测协议",
+          "text": "扩库监控：在同一旧87篇相关性分母上，以首阶段为参照，预设宏平均Recall下降容差0.03、nDCG下降容差0.05；任何超限保留并报告退化，不以不同分母隐藏变化。这是当前四快照的退化检查，不是对任意扩库永久不退化的保证。索引维护另记新增编码数、旧向量复用/内容修改失效，不把质量与时间混算。"
+        },
+        {
+          "section": "CPU 检索与研究方案改进：开发评测协议",
+          "text": "生成消融：三组均重新生成，避免直接用历史评审分数比较：旧完整检索+原提示、新检索+原提示、新检索+证据卡/蓝图/修订。三组最终输出使用相同3–5事实+design+limitations格式、2400输出token上限和900中文字符要求，提供原文字符上限均10000。完整方法增加内部调用，不能把整组收益全归因于检索或称总token等预算。"
+        },
+        {
+          "section": "CPU 检索与研究方案改进：开发评测协议",
+          "text": "盲评：每题匿名随机排序，裁判不见方法名称及内部草稿/批评。沿用旧correctness、question_coverage、design_usefulness（0–4），逐条核实引用支持；另用事先固定研究方案细则检查可证伪性、控制/公平、指标与判定、数据隔离、不确定性、实施边界（0–4）。细则只作为评测口径，不读取预设理想答案。重复调用仍有同模型偏差，不伪称人工金标。"
+        },
+        {
+          "section": "CPU 检索与研究方案改进：开发评测协议",
+          "text": "报告全部12题、逐题成败及未知引用；无正例返回null而非0。按6个idea聚类配对bootstrap只作小样本区间描述。代码/语料/标签/协议和模型版本hash留档；失败、重试及未知usage预算保留。最终还需运行公开plan-study接口及适当回归，确认改进接入实际规划流程。coding/模型训练不在评测范围。"
+        }
+      ]
+    },
+    {
+      "original_document": "docs/RAG_CPU_V3_RESULTS.md",
+      "sha256": "10cf7dabf9c66f1fc78fee835e1f7585fe7119fd5bd37eb75f00341856f03e7c",
+      "tables": [
+        {
+          "section": "检索与扩库质量",
+          "markdown": "| 指标及中文含义 | 旧完整检索 | 新 CPU 检索 |\n| --- | ---: | ---: |\n| Recall@10：前十论文找回全部相关论文的比例 | 42.21% | 41.65% |\n| MRR@10：首篇相关论文的倒数排名，越接近 1 越靠前 | 1.000 | 0.917 |\n| nDCG@10：考虑相关程度与位置的前十排序质量，越大越好 | 0.690 | 0.703 |"
+        },
+        {
+          "section": "检索与扩库质量",
+          "markdown": "| 快照论文数 | 旧检索 | 新 CPU 检索 |\n| --- | ---: | ---: |\n| 87 | 0.641 | 0.613 |\n| 89 | 0.652 | 0.603 |\n| 92 | 0.669 | 0.679 |\n| 94 | 0.690 | 0.703 |"
+        },
+        {
+          "section": "研究回答与方案质量",
+          "markdown": "| 指标及含义 | 旧检索+原提示 | 只改检索 | 检索+证据卡/蓝图/修订 |\n| --- | ---: | ---: | ---: |\n| 知识正确性：回答是否科学准确 | 3.83 | 3.83 | 3.92 |\n| 问题覆盖：是否答全所问的机制/边界等 | 3.83 | 3.83 | 3.50 |\n| 方案可用性：实验设计能否实际指导研究 | 2.83 | 2.75 | 4.00 |\n| 六项设计细则平均分 | 2.51 | 2.47 | 3.85 |\n| 全部事实获引用原文充分支持的比例 | 32/49，65.31% | 30/45，66.67% | 32/43，74.42% |"
+        },
+        {
+          "section": "研究回答与方案质量",
+          "markdown": "| 中文细则 | 旧流程 | 只改检索 | 完整新流程 |\n| --- | ---: | ---: | ---: |\n| 可证伪性：假设能否被结果否定 | 3.08 | 3.00 | 4.00 |\n| 控制与公平：变量/数据/调参预算是否可比 | 3.00 | 2.83 | 4.00 |\n| 指标与判定：是否指定主要指标和结论条件 | 2.08 | 2.25 | 3.83 |\n| 数据隔离：验证选择与独立测试是否分离 | 2.00 | 1.58 | 3.75 |\n| 不确定性：是否考虑配对多种子和结果波动 | 1.67 | 1.67 | 3.67 |\n| 实施范围：适配/资源/迁移边界是否诚实 | 3.25 | 3.50 | 3.83 |"
+        },
+        {
+          "section": "研究回答与方案质量",
+          "markdown": "| IDEA | 旧流程 | 只改检索 | 完整新流程 | 新流程问题覆盖 |\n| --- | ---: | ---: | ---: | ---: |\n| R01 动态低秩预算 | 3.0 | 3.0 | 4.0 | 4.0 |\n| R02 方向/幅值分解 | 3.0 | 2.5 | 4.0 | 3.5 |\n| R03 缩放平移与适配器 | 3.0 | 2.5 | 4.0 | 4.0 |\n| R04 跨层因子共享 | 3.0 | 3.0 | 4.0 | 2.5 |\n| R05 并联/串联适配器 | 2.5 | 3.0 | 4.0 | 4.0 |\n| R06 视觉提示位置 | 2.5 | 2.5 | 4.0 | 3.0 |"
+        },
+        {
+          "section": "验证与实际调用成本",
+          "markdown": "| 工作区 | 已知实际 token | 未知用量保守预留 | 累计计入预算 |\n| --- | ---: | ---: | ---: |\n| 主检索/回答/裁判评测 | 958,564 | 83,083 | 1,041,647 |\n| 公开入口四次运行合计 | 220,083 | 25,499 | 245,582 |\n| 本轮合计 | **1,178,647** | **108,582** | **1,287,229** |"
+        }
+      ],
+      "numeric_context": [
+        {
+          "section": "CPU 检索与研究方案改进：真实结果",
+          "text": "日期：2026-10-20。用户要求在没有 CUDA 时尝试提高 RAG 与研究方案质量，并考虑知识库扩展。实现不训练新模型：CPU 上复用既有向量模型/交叉编码器，调用现有远程 LLM 进行查询分解、证据筛选和研究规划。"
+        },
+        {
+          "section": "CPU 检索与研究方案改进：真实结果",
+          "text": "本轮是同领域开发对照：小数据量图像分类中的 ViT 参数高效微调，6 个 IDEA、12 问、94 篇论文、7,757 个全文段。七篇新增论文来自此前真实联网获取，本轮重放其三批扩库，不声称本轮又下载了七篇，也不称全新未见测试。"
+        },
+        {
+          "section": "实现与对照",
+          "text": "银标作为临时主要评测参考，金标入口保留为 null。检索、证据筛选、生成不读取相关性标签。模型为 `gpt-6-sol`，CPU 检索模型沿用 MiniLM 多语言 embedding/cross-encoder，并记录缓存 checkpoint。三组均本轮重新生成且匿名评审：旧检索+旧提示、新检索+旧提示、新检索+证据卡/蓝图/批评。最终原文最多 10,000 字符、输出上限 2,400 token；完整路径内部调用更多，不能称总 token 等预算。"
+        },
+        {
+          "section": "实现与对照",
+          "text": "冻结协议在 [RAG_CPU_V3_PROTOCOL.md](RAG_CPU_V3_PROTOCOL.md)，逐问输出、模型请求/响应、语料/标签/关键源码指纹和账本在 `workspace_rag_cpu_v31`。公开入口对照在 `workspace_cpu_study_v1`，实际分批索引检查在 `workspace_rag_cpu_growth_v1`。原工作区、历史失败和 `.env` 均保留。"
+        },
+        {
+          "section": "实现与对照",
+          "text": "其中 R03b 的第一次匿名评审输出了无效 JSON，无法可靠对齐字段，所以用完全相同的匿名输入重试，没有修改目标分数或论文内容。第一次请求、响应和当时账本另存 `workspace_rag_cpu_v31/format_failures/first_R03b`，费用继续计入累计账本。"
+        },
+        {
+          "section": "检索与扩库质量",
+          "text": "下表是相同 94 篇语料、相同 12 问的论文级前十结果，逐问宏平均；重复段落不重复得分。"
+        },
+        {
+          "section": "检索与扩库质量",
+          "text": "新排序质量提高约 0.013，但召回下降约 0.55 个百分点，首篇相关结果位置也变差；没有全面胜过旧检索，因此默认仍为 `legacy`，新完整路径通过 `--retrieval-strategy cpu` 启用。不能只选 nDCG 上升来宣布 RAG 全面改进。"
+        },
+        {
+          "section": "检索与扩库质量",
+          "text": "单看新增 7 篇相关论文，前十召回为 43.75%→46.53%，排序质量为 0.402→0.431；新方法更容易纳入部分新论文，但不能据此忽略旧证据保留的损失。六 IDEA 聚类配对 bootstrap 的整体 nDCG 差值 95% 描述区间约为 [-0.063, 0.096]，跨零，不支持稳定检索优势。"
+        },
+        {
+          "section": "检索与扩库质量",
+          "text": "从 87 到 94 篇，包含新增论文的整体排序质量最终提高；新方法在 89 篇时有小幅下降，不能说每批都单调提高。"
+        },
+        {
+          "section": "检索与扩库质量",
+          "text": "固定旧 87 篇证据作为目标时，旧检索 nDCG 为 0.641→0.576（下降 0.065），新检索为 0.613→0.543（下降 0.070），均超过预设 0.05 容差。新方法旧证据召回为 41.83%→39.13%，下降 2.70 个百分点，仍在 3 个百分点容差内。两种方法的旧证据保留检查都报告 `regression_detected`，没有隐藏扩库后部分旧证据被新文献挤出的现象。该检查不等于整体相关性变差，但也不支持“扩库永不退化”。最终重复检索 12/12 排序一致，重排对均从缓存复用。"
+        },
+        {
+          "section": "研究回答与方案质量",
+          "text": "下表评分范围 0–4，越高越好；原文支持率另按所有输出事实计数。三组是同一轮匿名评审，不能直接与历史裁判分数作差。"
+        },
+        {
+          "section": "研究回答与方案质量",
+          "text": "完整新流程相对旧流程的方案可用性增量为 +1.17/4，按 6 IDEA 聚类配对重采样的 95% 描述区间为 [1.00, 1.33]；相对只改检索为 +1.25/4，区间 [1.08, 1.42]。这支持“在本领域开发样本上，证据组织与研究蓝图/批评链有增益”，不能将增益全部归给检索，或把同模型银标高分当作人工验证。"
+        },
+        {
+          "section": "研究回答与方案质量",
+          "text": "覆盖评分下降主要发生于 R02/R04/R06，尤其 R04；设计更具体挤占了机制/边界解释，因此不能说回答整体所有维度都提高。完整方法输出事实也从 49 条降为 43 条，充分支持的绝对数量仍是 32 条，支持率提升不能解释成额外找到更多已证实事实。"
+        },
+        {
+          "section": "研究回答与方案质量",
+          "text": "离线审计验证了 44 条所选原文引用，拒绝 14 张不符合逐字引用等规则的卡；12 问中 8 次触发修订，1 次补充证据检索。完整新流程 R03b 还有 1 处引用 ID 不在最终供给证据中，按不获支持计入分母，未事后修改输出以抬高成绩。"
+        },
+        {
+          "section": "索引维护与公开入口",
+          "text": "87→89→92→94 篇的真实分批索引检查：三批分别新增编码 156、251、123 段，共 530 段；原有 7,227 个向量逐值一致。该检查复用旧 87 篇初始向量，不是冷启动速度测量。新命名空间首次全量编码另有 7,757 段的记录。"
+        },
+        {
+          "section": "索引维护与公开入口",
+          "text": "两道研究任务分别运行旧、新公开规划路径，最终各 2/2 通过 coding 前机械检查、银标审查与最终独立调用确认。旧路径首次通过 2/2，新路径首次通过 1/2；新路径另一个任务第二版通过，原因是初稿对“区间包含零”的判定与“支持假设”描述不一致。这里没有提高通过率的证据，也没有执行 coding 或模型训练。"
+        },
+        {
+          "section": "验证与实际调用成本",
+          "text": "最终完整回归 **104/104 通过**。`scripts/audit_rag_cpu.py` 不调用 LLM，检查冻结源码/语料/标签指纹、96 份检索记录、36 份回答、12 份匿名评审、引用来源、各分母指标重算、扩库阈值和累计预算，结果 `passed=true`。详细区间和审计在 `workspace_rag_cpu_v31/audit.json`。"
+        },
+        {
+          "section": "解释边界",
+          "text": "当前向量检索仍随语料规模扫描，新增缓存和上限重排不能保证百万论文规模，也不能证明任意未来扩库永不退化。旧 87 篇保留指标将新论文视作非旧证据，用于发现旧证据被挤出；它与包含新论文相关性的整体质量必须分别报告。"
+        }
+      ]
+    },
+    {
+      "original_document": "docs/RAG_FUSION_USAGE.md",
+      "sha256": "927833182f701e1d4dd4069cc896d9ee4a9b283884017093b44e6dc2a311bd5a",
+      "tables": [],
+      "numeric_context": [
+        {
+          "section": "两路融合：使用与边界",
+          "text": "  --source workspace_rag_cpu_v31 `"
+        },
+        {
+          "section": "两路融合：使用与边界",
+          "text": "  --dataset-workspace workspace_batch_vit_v2 `"
+        },
+        {
+          "section": "两路融合：使用与边界",
+          "text": "  --token-cap 250000 `"
+        },
+        {
+          "section": "两路融合：使用与边界",
+          "text": "  \"在10%标签预算下，比较ViT的LoRA rank=2/8/16，研究准确率与可训练参数的取舍，并明确公平对照和判定规则。\""
+        },
+        {
+          "section": "两路融合：使用与边界",
+          "text": "完整对照与限制见 [真实结果](RAG_FUSION_V1_RESULTS.md)，执行前固定的细节见 [协议](RAG_FUSION_V1_PROTOCOL.md)。复跑："
+        }
+      ]
+    },
+    {
+      "original_document": "docs/RAG_FUSION_V1_PROTOCOL.md",
+      "sha256": "16713f824a4a0e6478722843ef9515d9b70d38ef0bf387ef148c9fda3b742d1e",
+      "tables": [],
+      "numeric_context": [
+        {
+          "section": "两路融合开发对照协议",
+          "text": "2026-10-20，查看本轮融合检索/回答结果前固定。已知上一轮六 IDEA/12 问的结果，属于基于其反馈的开发改进，不是未触碰的外部测试。"
+        },
+        {
+          "section": "两路融合开发对照协议",
+          "text": "融合方法固定为：旧、新检索候选按论文合并，旧/新 RRF 权重 0.65/0.35、常数60；最多32篇，每篇最多2段、每段前1000字符提供给原文条件的LLM相关性重排。旧检索第一篇固定为锚点，其他按0–3来源效用和RRF排序。效用大于0须有逐字25–240字符引用，否则该判断降为0并记录。没有有效结构时最多一次格式重试，再回退RRF且记录，不重试目标分数。"
+        },
+        {
+          "section": "两路融合开发对照协议",
+          "text": "四个87→89→92→94快照沿用上一轮已冻结的新增7篇哈希顺序。可从直接前一快照接收旧结果，先检查当前库身份/原文/允许论文集合，再将最多两篇仍获直接证据效用的旧文保留在前十。只允许向前传递，不使用未来快照或相关性标签。每个快照都是完整当前排序，不拼接评测真值。另在最终94篇跑无历史融合，区分保留机制和单次融合。两种94篇策略都报告，不能按得分择优。"
+        },
+        {
+          "section": "两路融合开发对照协议",
+          "text": "相关性标签是此前全94篇全文的银标，临时作为主要参考，金标入口null。重排器看原文和自然语言问题，不看标签、预期论文、目标分数或原文银标理由。用模型对候选做原文重排是运行时组件，不能冒充独立标签或金标。"
+        },
+        {
+          "section": "两路融合开发对照协议",
+          "text": "检索对照复用上一轮旧/新候选的已存原文排名，重算三路同分母论文Recall/MRR/nDCG@10；记录候选池上界只用于事后分析，不参与算法。当前、固定94、旧87、新7分母分别报告。旧87保留继续采用召回下降0.03、nDCG下降0.05容差；超限保留。最终重复相同输入检查结果一致，API缓存成本另记。新下载论文来自之前真实获取，本轮是分批重放，不声称再次联网下载。"
+        },
+        {
+          "section": "两路融合开发对照协议",
+          "text": "融合回答同时保留前四篇原文上下文及证据卡，总源文本最多10000字符，3–5事实+design+limitations、2400输出token、900中文字符要求与对照相同。逐项抽取真实问题要求，研究蓝图、覆盖/引用检查和最多两次修订。检查不读外部参考。无来源的引用必须触发修订；最终仍无效按不获支持计入，不事后改答案。"
+        },
+        {
+          "section": "两路融合开发对照协议",
+          "text": "回答对照采用上一轮已固定的旧流程、完整CPU新流程回答，加本轮新融合回答，全部在同一新匿名调用中一起评分，不直接复用历史分数。裁判看不到方法名称/检查/草稿，输入随机顺序；保持原知识正确性、问题覆盖、方案可用性及六设计维度0–4口径，逐原事实边界核查原文支持。裁判和生成仍为同模型独立调用银标，存在相关偏差。额外内部调用并非总token等预算。"
+        }
+      ]
+    },
+    {
+      "original_document": "docs/RAG_FUSION_V1_RESULTS.md",
+      "sha256": "c0f717503a993d39bd587f580f3fc9b3c647219a039b28c266dad630c01a2a5d",
+      "tables": [
+        {
+          "section": "检索指标与扩库",
+          "markdown": "| 指标及中文含义 | 旧检索 | 完整CPU新检索 | 融合（无历史） |\n| --- | ---: | ---: | ---: |\n| Recall@10：前十找回全部相关论文的比例 | 42.21% | 41.65% | **42.89%** |\n| MRR@10：首篇相关论文的倒数排名 | 1.000 | 0.917 | **1.000** |\n| nDCG@10：考虑相关程度和位置的排序质量 | 0.690 | 0.703 | **0.749** |"
+        },
+        {
+          "section": "检索指标与扩库",
+          "markdown": "| 篇数 | 旧检索 | CPU新检索 | 融合 |\n| --- | ---: | ---: | ---: |\n| 87 | 0.641 | 0.613 | 0.649 |\n| 89 | 0.652 | 0.603 | 0.673 |\n| 92 | 0.669 | 0.679 | 0.692 |\n| 94 | 0.690 | 0.703 | 0.749 |"
+        },
+        {
+          "section": "回答质量：本轮三组同场匿名评审",
+          "markdown": "| 指标及中文含义 | 旧方案 | 完整CPU新方案 | 融合 |\n| --- | ---: | ---: | ---: |\n| 知识正确性：科学内容是否准确 | 3.83 | 3.92 | **4.00** |\n| 问题覆盖：是否答全实际所问的机制、比较和边界 | 3.58 | 3.25 | **3.83** |\n| 方案可用性：对照与判定条件能否实际指导研究 | 2.42 | 3.25 | **4.00** |\n| 六项研究设计细则平均 | 2.21 | 3.33 | **3.82** |\n| 所有事实获得引用原文充分支持的比例 | 37/49，75.51% | 35/43，81.40% | **50/52，96.15%** |"
+        },
+        {
+          "section": "回答质量：本轮三组同场匿名评审",
+          "markdown": "| 六项设计细则 | 旧方案 | CPU新方案 | 融合 |\n| --- | ---: | ---: | ---: |\n| 可证伪性 | 2.42 | 3.33 | 4.00 |\n| 控制与公平预算 | 2.75 | 3.17 | 3.67 |\n| 主要指标与结论判定 | 1.67 | 3.08 | 4.00 |\n| 验证选择与测试隔离 | 1.75 | 3.67 | 4.00 |\n| 配对多种子与不确定性 | 1.58 | 3.50 | 3.50 |\n| 实施及证据范围边界 | 3.08 | 3.25 | 3.75 |"
+        },
+        {
+          "section": "回答质量：本轮三组同场匿名评审",
+          "markdown": "| IDEA | 旧/CPU/融合方案可用性 | 旧/CPU/融合问题覆盖 |\n| --- | --- | --- |\n| R01 动态低秩预算 | 2.5 / 3.0 / 4.0 | 3.5 / 3.5 / 4.0 |\n| R02 方向与幅值分解 | 2.5 / 3.5 / 4.0 | 3.5 / 3.5 / 4.0 |\n| R03 特征缩放平移与适配器 | 3.0 / 3.0 / 4.0 | 4.0 / 3.0 / 4.0 |\n| R04 跨层低秩因子共享 | 2.0 / 3.5 / 4.0 | 4.0 / 2.5 / 3.0 |\n| R05 并联与串联适配器 | 2.0 / 3.0 / 4.0 | 2.5 / 3.5 / 4.0 |\n| R06 视觉提示位置 | 2.5 / 3.5 / 4.0 | 4.0 / 3.5 / 4.0 |"
+        },
+        {
+          "section": "验证、篇幅与本轮实际成本",
+          "markdown": "| 本轮费用范围 | 已知实际token | 未知用量保守预留 | 累计计入预算 |\n| --- | ---: | ---: | ---: |\n| 四快照检索、融合生成和共同裁判 | 1,458,107 | 106,113 | 1,564,220 |\n| 两道公开规划 | 172,903 | 119,048 | 291,951 |\n| 合计 | **1,631,010** | **225,161** | **1,856,171** |"
+        }
+      ],
+      "numeric_context": [
+        {
+          "section": "两路融合：开发对照真实结果",
+          "text": "日期：2026-10-20。本轮在已知上一轮优缺点后实现融合，不是新未见测试。领域仍为小数据图像分类中的 ViT 参数高效微调；同一 6 IDEA/12 问、94 篇论文、7,757 段全文。新增 7 篇论文来自此前真实获取，本轮重放 87→89→92→94 四个快照，不称本轮再次下载新论文。"
+        },
+        {
+          "section": "方法与执行口径",
+          "text": "检索合并旧/新候选，固定保留旧检索首篇；其余论文经原文条件的相关性重排，非零效用须提供可逐字定位的证据。最多 32 篇、每篇 2 段，各 1,000 字符；旧/新 RRF 权重 0.65/0.35 不随结果调整。扩库另可传前一阶段结果，将最多两篇仍具直接证据效用的旧文保留在前十；最终 94 篇同时报告不带历史的融合。"
+        },
+        {
+          "section": "方法与执行口径",
+          "text": "回答保留关键原文上下文、证据卡和研究蓝图，再按用户真实问题抽取覆盖要求，检查机制/比较/边界遗漏、引用和研究设计，最多两次修订。最终源文本上限 10,000 字符、输出上限 2,400 token，保持原 900 中文字符要求；内部调用更多，不是总 token 等预算。"
+        },
+        {
+          "section": "方法与执行口径",
+          "text": "协议在 [RAG_FUSION_V1_PROTOCOL.md](RAG_FUSION_V1_PROTOCOL.md)，用法在 [RAG_FUSION_USAGE.md](RAG_FUSION_USAGE.md)。主记录位于 `workspace_rag_fusion_v1`，公开入口实测位于 `workspace_fusion_study_v1`。旧工作区、`.env`、源码快照和历史失败均保留。"
+        },
+        {
+          "section": "检索指标与扩库",
+          "text": "同一 94 篇、12 问的论文级前十宏平均："
+        },
+        {
+          "section": "检索指标与扩库",
+          "text": "相对旧检索，两升一平；相对完整CPU新检索，三项都提高。召回增幅约0.68个百分点，排序质量提高约0.059，不能把小幅召回提升说成大幅覆盖改善。最终94篇有历史/无历史的这三项均相同，历史保留机制在本批数据上未显示独立指标增益。"
+        },
+        {
+          "section": "检索指标与扩库",
+          "text": "融合整体排序随这三批扩库提高，但召回并非单调提高：43.08%→42.32%→40.97%→42.89%。在92篇时融合召回低于旧检索（41.70%）；在89篇时融合MRR为0.944，低于旧检索0.958。不能只用最终快照推断所有阶段所有指标均胜。"
+        },
+        {
+          "section": "检索指标与扩库",
+          "text": "固定旧87篇证据分母时，融合排序0.649→0.611，最大下降约0.037，处于0.05容差内；旧检索/CPU新检索最终分别下降约0.065/0.070。融合在这个排序保留指标上改善了扩库退化。但旧证据召回43.08%→39.39%，92篇最低38.98%，最大下降约4.11个百分点，超过3个百分点容差，整组扩库检查仍为 `regression_detected`。没有实现任意扩库不退化。"
+        },
+        {
+          "section": "检索指标与扩库",
+          "text": "新增7篇相关论文的最终前十召回为：旧43.75%、CPU新46.53%、融合50.69%。融合更好纳入了部分新文献，同时旧证据召回仍被挤出；两种结果都保留。"
+        },
+        {
+          "section": "回答质量：本轮三组同场匿名评审",
+          "text": "前三项和设计细则为0–4分，越大越好。下表的旧/CPU回答与上一轮文件完全相同，但本轮重新匿名共同评分；因此回答分数须用本表内部比较，不能拼接上一轮分数。"
+        },
+        {
+          "section": "回答质量：本轮三组同场匿名评审",
+          "text": "融合充分支持的事实绝对数量也增加，没有靠减少事实数量提高支持率。知识正确性4分是银标评分，不是已证明100%客观正确。"
+        },
+        {
+          "section": "回答质量：本轮三组同场匿名评审",
+          "text": "R04a覆盖从旧方案4分降为2分：融合更谨慎地说明自拟方案，但仍用其他方法与提案代替了FacT共享因子的直接解释。这个失败原文保留，未按裁判结果重写答案。因此“平均六升一平”不能解释成每个问题均无损。"
+        },
+        {
+          "section": "回答质量：本轮三组同场匿名评审",
+          "text": "最终94篇/12问逐题相对旧方案的升/平/降：召回4/5/3，排序7/0/5，首相关排名0/12/0；正确性2/10/0、覆盖4/7/1、方案可用性11/1/0、逐题事实支持率8/4/0。详细分数、原因和输出在 `report.json`/`audit.json`。"
+        },
+        {
+          "section": "回答质量：本轮三组同场匿名评审",
+          "text": "六IDEA聚类配对bootstrap的95%描述区间：召回增量[-0.059, 0.069]，排序增量[-0.029, 0.173]，均跨零；方案可用性增量[1.33, 1.83]，逐题事实支持率增量[0.117, 0.292]。这更支持方案/证据组织改善，尚不支持把小样本检索平均优势称作外部稳定优势。"
+        },
+        {
+          "section": "回答质量：本轮三组同场匿名评审",
+          "text": "相同输出在新裁判调用中仍有明显评分波动，例如完整CPU方案可用性上一轮4.00、本轮3.25。因此需要同轮对照，不能把单次自动4分当绝对标尺；进一步证明仍需新题和更独立的评审。"
+        },
+        {
+          "section": "公开规划入口",
+          "text": "两题 `vit_rank_tradeoff`、`vit_lora_dropout` 通过真实CPU两路检索、论文重排、证据与蓝图后，均成功编译为coding前契约，并通过机械检查、批评与最终独立调用确认，最终2/2，方案首次审查均通过。旧路径此前同两题也最终2/2，因此不能声称最终通过率提高。"
+        },
+        {
+          "section": "公开规划入口",
+          "text": "“方案第一版通过”不等于整个请求无中断：dropout任务先经历两次服务HTTP524，第三次续跑才完成。全链没有执行coding或模型训练，仍不能证明研究假设成立。"
+        },
+        {
+          "section": "失败与恢复",
+          "text": "首次主评测在 89 篇的 R03a 重排遇到服务 HTTP 524，其余 23 份检索结果保留；降低并发后从未完成节点继续。公开入口的 dropout 任务两次遇到重排 HTTP 524，另一题首次通过。失败请求和当时账本分别存入两工作区的 `failures/http524_first`，公开入口第二次失败另存 `http524_second`，未知用量预留不清零。服务故障不改写为模型语义失败，也不从成本或尝试记录中删除。"
+        },
+        {
+          "section": "失败与恢复",
+          "text": "主评测生成阶段还有一次证据卡调用HTTP524，原请求和账本保存在 `workspace_rag_fusion_v1/failures/evidence_cards_http524`，其余任务继续生成，之后仅补未完成节点。"
+        },
+        {
+          "section": "验证、篇幅与本轮实际成本",
+          "text": "最终回归109/109通过；离线 `scripts/audit_rag_fusion.py` 结果 `passed=true`，重算144份三路检索指标、60份融合排序、36份回答和12份匿名评审，检查源码/控制输出/原文/标签hash、无未来论文混入、预算和公开入口。重复融合12/12排序相同。所有重排均使用有效结构，没有触发RRF格式回退；按各快照/无历史记录累计拒绝111条不符合原文引用要求的论文效用判定（包含缓存复用记录），没有把这些判定当作可靠证据。"
+        },
+        {
+          "section": "验证、篇幅与本轮实际成本",
+          "text": "融合证据卡58条均可逐字回查。最终融合回答的引用ID全部在实际供给证据中，无效ID为0；CPU控制组仍有1处既有无效ID，未事后修复以改变对照。"
+        },
+        {
+          "section": "验证、篇幅与本轮实际成本",
+          "text": "平均可见中文字符：旧415.5、CPU409.3、融合436.4；融合最大527，均在900中文字符要求内。完整路径的内部调用更多，但最终回答没有放宽输出上限。"
+        },
+        {
+          "section": "验证、篇幅与本轮实际成本",
+          "text": "合计156次付费请求尝试，4次服务HTTP524的未知费用未删除。API缓存复用不新增请求，旧控制回答/旧候选/全文标签的历史费用不重复计作本轮。token不等于货币费用，未做服务商账单对账。"
+        }
+      ]
+    },
+    {
+      "original_document": "docs/RAG_INCREMENTAL_BENCHMARK.md",
+      "sha256": "e8972d6536a0dd9c8878c64ff1e45d9635ab8dbc490a46dbad9c3eb5eb45b84f",
+      "tables": [
+        {
+          "section": "新 idea、增量论文与神经 RAG 的评测入口",
+          "markdown": "| mode | 含义 |\n| --- | --- |\n| bm25 | 关键词统计检索及既有全文索引分数，不调用神经模型 |\n| dense | 真实神经向量相似度，不调用交叉编码器 |\n| hybrid | 关键词和神经向量融合，含去冗余选择 |\n| full | 既有完整神经混合流程：融合、交叉编码器重排、去冗余选择；默认值 |"
+        }
+      ],
+      "numeric_context": [
+        {
+          "section": "新 idea、增量论文与神经 RAG 的评测入口",
+          "text": "收费请求共用线程安全预算账本，默认总上限8,000,000 token，含未知调用保守预留；历史语料成本不在本轮重计。"
+        },
+        {
+          "section": "新 idea、增量论文与神经 RAG 的评测入口",
+          "text": "输出工作区独立于87篇源数据库，原知识库、论文和早期失败不覆盖。"
+        },
+        {
+          "section": "新 idea、增量论文与神经 RAG 的评测入口",
+          "text": "连续小块合并到最多1200字符，保留原文节点ID、PDF hash、页码和合并bbox，不称为OCR/公式纠错。"
+        },
+        {
+          "section": "新 idea、增量论文与神经 RAG 的评测入口",
+          "text": "- 首个相关结果排名得分：第一篇相关论文越靠前越好，第一名为1，第二名为0.5。"
+        },
+        {
+          "section": "新 idea、增量论文与神经 RAG 的评测入口",
+          "text": "- 相关性排序质量：更直接支持问题的论文排得越靠前越好，理想排序为1。"
+        },
+        {
+          "section": "新 idea、增量论文与神经 RAG 的评测入口",
+          "text": "论文排序从返回的前40文本段中按首次出现去重，最多取10篇；不足10篇不补入未返回论文。"
+        },
+        {
+          "section": "新 idea、增量论文与神经 RAG 的评测入口",
+          "text": "盲评正确性、覆盖、研究设计分别为0–4分；事实正确率和有原文支持的事实比例分开。"
+        },
+        {
+          "section": "新 idea、增量论文与神经 RAG 的评测入口",
+          "text": "`repeat_search.json` 验证重复检索顺序及耗时。索引复用加速不能说成神经检索比BM25快。"
+        },
+        {
+          "section": "新 idea、增量论文与神经 RAG 的评测入口",
+          "text": "2026-10-20 增补：原始检索暴露了纯中文查询的失败，新增统一英文技术查询规划。"
+        },
+        {
+          "section": "新 idea、增量论文与神经 RAG 的评测入口",
+          "text": "复验协议见 [v2协议](RAG_INCREMENTAL_V2_PROTOCOL.md)。保留原始v1，v2不是未触碰测试集。"
+        },
+        {
+          "section": "新 idea、增量论文与神经 RAG 的评测入口",
+          "text": "第二条命令提供保留账本的有界断点恢复。v2复用v1中真实获取的7篇新增论文及全部全文相关性标注，"
+        },
+        {
+          "section": "新 idea、增量论文与神经 RAG 的评测入口",
+          "text": "重新运行查询、检索、池内标注、生成和盲评。汇总成本应将v1、v2与最初沙箱失败账本分别列出后相加。"
+        }
+      ]
+    },
+    {
+      "original_document": "docs/RAG_INCREMENTAL_PROTOCOL.md",
+      "sha256": "77064199dd39838d0473d2d5f619798d5fe4016dcb58ce8ef87f1aedaf7e3be2",
+      "tables": [],
+      "numeric_context": [
+        {
+          "section": "新 IDEA 与新增论文的 RAG 对照协议 v1",
+          "text": "2026-10-20，执行前冻结。范围是预训练 ViT 参数高效适配的文献取证与研究设计，不运行 coding 或训练。"
+        },
+        {
+          "section": "新 IDEA 与新增论文的 RAG 对照协议 v1",
+          "text": "六个新增研究问题、十二个中英文证据查询固定于 `config/benchmarks/rag_incremental_v1.json`。"
+        },
+        {
+          "section": "新 IDEA 与新增论文的 RAG 对照协议 v1",
+          "text": "来源是此前真实获取的87篇论文快照；每个新问题再执行实时发现，最多新增两篇不同 PDF hash 的公开全文。"
+        },
+        {
+          "section": "新 IDEA 与新增论文的 RAG 对照协议 v1",
+          "text": "论文全文相对于本轮初始87篇判定为新增，不能把重新下载旧文件计为新增。每题获取失败仍保留。"
+        },
+        {
+          "section": "新 IDEA 与新增论文的 RAG 对照协议 v1",
+          "text": "四个同语料、同查询、同返回数的检索对照：BM25关键词、神经向量、关键词+向量、完整神经混合+交叉编码器重排+MMR。"
+        },
+        {
+          "section": "新 IDEA 与新增论文的 RAG 对照协议 v1",
+          "text": "每个查询/论文标为0无直接证据、1局部支持、2直接支持；正标签必须给可逐字核验的文本段ID和原句。"
+        },
+        {
+          "section": "新 IDEA 与新增论文的 RAG 对照协议 v1",
+          "text": "指标：论文级 Recall@5/10（已标相关论文找回比例）、MRR@10（首个相关结果倒数排名）、"
+        },
+        {
+          "section": "新 IDEA 与新增论文的 RAG 对照协议 v1",
+          "text": "nDCG@10（相关程度越高、位置越靠前越好），片段级同名排序指标。"
+        },
+        {
+          "section": "新 IDEA 与新增论文的 RAG 对照协议 v1",
+          "text": "用按六个 IDEA 聚类的配对 bootstrap 95%区间，展示效应不确定性，小样本不承诺显著。"
+        },
+        {
+          "section": "新 IDEA 与新增论文的 RAG 对照协议 v1",
+          "text": "RAG消融：相同模型、问题、输出约束，对比无检索、BM25、完整神经RAG。证据字符预算相同，保留实际输入token。"
+        },
+        {
+          "section": "新 IDEA 与新增论文的 RAG 对照协议 v1",
+          "text": "报告0–4分的正确性、问题覆盖、研究设计可用性，以及事实支持率、引用可定位率。无RAG仍可凭模型知识正确，不能因无引用直接把正确性记0。"
+        },
+        {
+          "section": "新 IDEA 与新增论文的 RAG 对照协议 v1",
+          "text": "记录首次检索与重复检索，不把模型加载时间混为缓存算法收益。准确性排序和速度分别报告；神经系统可能比BM25更慢。"
+        }
+      ]
+    },
+    {
+      "original_document": "docs/RAG_INCREMENTAL_RESULTS.md",
+      "sha256": "9b644884ef0060d8908942e9492feac60d5ab0f69ee232a0dcbbe2887d90ae61",
+      "tables": [
+        {
+          "section": "2. 指标的中文含义",
+          "markdown": "| 指标 | 中文解释与口径 |\n| --- | --- |\n| Recall@10：前十相关论文找回率 | 每个问题的全部已标注相关论文中，有多少出现在返回的前十篇不同论文中，再对12个问题平均。相关论文为6–44篇，不是全球文献召回率。 |\n| MRR@10：首个相关结果的倒数排名得分 | 第一篇相关论文在第1位得1，第2位得0.5，第3位得约0.333；前十没有则为0。十二题平均。 |\n| nDCG@10：前十相关性排序质量 | 直接支持问题的论文比背景支持更有价值，越靠前越好；理想排序得1。不是“百分之多少事实正确”。 |\n| 事实支持覆盖率 | 输出的全部事实中，有引用且引用原文充分支持整条事实的比例；部分支持不计充分支持。模型银标。 |\n| 引用支持率 | 仅在带引用的事实中计算充分支持比例，与全部事实的支持覆盖率不同。 |\n| 正确性/问题覆盖/设计可用性 | 匿名评审分别打0–4分；无RAG凭已有知识答对同样得分，不因无引用直接记错误。 |"
+        },
+        {
+          "section": "3. 检索实测：新增论文后的94篇语料",
+          "markdown": "| 查询版本/检索路径 | 前十找回率 | 首个相关结果得分 | 前十排序质量 |\n| --- | ---: | ---: | ---: |\n| 原始问题：关键词 | 21.96% | 0.639 | 0.384 |\n| 原始问题：纯神经向量 | 23.31% | 0.522 | 0.343 |\n| 原始问题：关键词+向量 | 26.45% | 0.764 | 0.483 |\n| 原始问题：完整神经混合 | 27.62% | 0.786 | 0.519 |\n| 统一查询规划：关键词 | 38.54% | 0.903 | 0.655 |\n| 统一查询规划：纯神经向量 | 25.26% | 0.715 | 0.398 |\n| 统一查询规划：关键词+向量 | 40.96% | 0.806 | 0.596 |\n| 统一查询规划：完整神经混合 | **42.21%** | **1.000** | **0.690** |"
+        },
+        {
+          "section": "5. RAG独立增益：同模型、同原始问题、同输出预算",
+          "markdown": "| 指标 | 无RAG | 关键词RAG | 完整神经RAG |\n| --- | ---: | ---: | ---: |\n| 知识正确性（0–4） | 3.83 | 3.83 | 3.83 |\n| 问题覆盖（0–4） | 3.67 | 4.00 | 3.83 |\n| 研究设计可用性（0–4） | 3.83 | 3.92 | **3.58** |\n| 原文充分支持的事实/全部事实 | 0/46 | 34/46 | 40/49 |\n| 事实支持覆盖率 | 0% | 73.91% | **81.63%** |\n| 可定位的带引用事实 | 无引用 | 41/41 | 48/48 |\n| 引用支持率 | 不适用 | 34/41=82.93% | 40/48=83.33% |"
+        },
+        {
+          "section": "6. 速度：增量索引确有收益，神经查询本身更慢",
+          "markdown": "| 同一CPU与已预热模型 | 实测 |\n| --- | ---: |\n| 原始7227段首次索引与编码 | 268.81秒 |\n| 新增530段的索引更新 | 21.92秒，复用7227个旧向量 |\n| 全部7757段重新编码 | 278.83秒，且不含数据库写入 |\n| 读取复用完整持久向量 | 1.02秒，新增编码0段 |"
+        }
+      ],
+      "numeric_context": [
+        {
+          "section": "新 idea、新论文与 RAG 独立增益：真实评测结果",
+          "text": "日期：2026-10-20。结论集中在**相关证据检索、增量索引和事实可追溯性**。"
+        },
+        {
+          "section": "新 idea、新论文与 RAG 独立增益：真实评测结果",
+          "text": "没有执行 coding 或训练；本轮答复消融的终点是研究证据答复与受控比较建议，不替代原P0冻结规格端到端成功率。"
+        },
+        {
+          "section": "1. 已实现与评测范围",
+          "text": "- 新增6个研究 idea、12个中英文证据问题，覆盖动态rank预算、DoRA方向/幅值分解、SSF特征缩放平移、跨层因子共享、并联adapter、提示层位置与预训练方式。"
+        },
+        {
+          "section": "1. 已实现与评测范围",
+          "text": "- 六题均真实执行 arXiv/OpenAlex 搜索；四题新下载1/2/2/2篇全文，共7篇不同PDF hash。R05/R06未下载新论文，保留为旧库复用任务。"
+        },
+        {
+          "section": "1. 已实现与评测范围",
+          "text": "- 旧库87篇扩展为94篇；新论文包括AdaLoRA、DoRA、DoRAN、SSF、Sensitivity-Aware Visual PEFT、低秩残差设计和聚合分解因子适配。"
+        },
+        {
+          "section": "1. 已实现与评测范围",
+          "text": "- 将旧库56,448个碎片组织为7,227个按页连续文本段；新增7篇产生530段，总计7,757段。保留原PDF、原节点ID、页码、bbox和hash；没有做OCR/公式纠错。"
+        },
+        {
+          "section": "1. 已实现与评测范围",
+          "text": "- 163个全文分段全部盲评，每段同时判读12个问题；不是只给检索返回结果打标签。正标签需引句逐字匹配，7条不匹配引句降为不支持。形成94×12的完整论文级模型银标。"
+        },
+        {
+          "section": "1. 已实现与评测范围",
+          "text": "- 四种真实检索路径、扩充前/后、两种查询版本，各保留96组查询结果；另有前十文本段并集的盲评。生成对照为无RAG、关键词RAG、完整神经RAG。"
+        },
+        {
+          "section": "1. 已实现与评测范围",
+          "text": "- 原始纯中文R01b四路径均未找回相关论文，已保留原始失败。新增通用英文技术查询规划，四路径使用同一检索式；全部十二题统一复验，规划器不看标签/参考答案。"
+        },
+        {
+          "section": "1. 已实现与评测范围",
+          "text": "协议：[原始协议](RAG_INCREMENTAL_PROTOCOL.md)、[查询规划复验](RAG_INCREMENTAL_V2_PROTOCOL.md)、[相同无检索对照复用](RAG_SHARED_CONTROL_ADDENDUM.md)。"
+        },
+        {
+          "section": "2. 指标的中文含义",
+          "text": "论文排序来自前40个文本段按首次出现去重，最多取十篇；没有用标签重排或补入未返回论文。"
+        },
+        {
+          "section": "3. 检索实测：新增论文后的94篇语料",
+          "text": "`paraphrase-multilingual-MiniLM-L12-v2` 和 `mmarco-mMiniLMv2-L12-H384-v1`；模型文件/commit hash见审计，不是hashing伪向量。"
+        },
+        {
+          "section": "3. 检索实测：新增论文后的94篇语料",
+          "text": "查询规划后的完整神经流程12/12题首篇相关；重复检索12/12顺序一致。"
+        },
+        {
+          "section": "3. 检索实测：新增论文后的94篇语料",
+          "text": "R01b由原始四路径零命中，变为完整流程前十找回7/11篇相关论文。"
+        },
+        {
+          "section": "3. 检索实测：新增论文后的94篇语料",
+          "text": "按6个idea聚类的配对bootstrap（5000次）显示："
+        },
+        {
+          "section": "3. 检索实测：新增论文后的94篇语料",
+          "text": "- 原始完整流程相对关键词，找回率提升5.67个百分点，95%区间[1.73,9.19]；排序得分提升0.135，区间[0.042,0.224]。"
+        },
+        {
+          "section": "3. 检索实测：新增论文后的94篇语料",
+          "text": "- 查询规划后，完整流程相对同样规划的关键词，找回率提升3.67个百分点，区间[0.71,6.57]；排序得分提升0.035，区间[-0.088,0.150]，不能宣称后者有稳定统计优势。"
+        },
+        {
+          "section": "4. 专门检查新增论文",
+          "text": "使用新增后的同一相关论文分母比较前后语料，完整流程前十找回率由32.02%升到42.21%。"
+        },
+        {
+          "section": "4. 专门检查新增论文",
+          "text": "若各自使用不同语料的分母，原语料为41.49%，两种口径不能混用。"
+        },
+        {
+          "section": "4. 专门检查新增论文",
+          "text": "只在7篇新增全文的相关子集中计算，完整流程的前十找回率为43.75%，关键词为39.58%；更新前两者均为0。"
+        },
+        {
+          "section": "4. 专门检查新增论文",
+          "text": "但新论文的倒数排名得分完整流程0.558、关键词0.619，排序质量分别0.402和0.472，说明新增论文的早期排序仍有改进空间。"
+        },
+        {
+          "section": "4. 专门检查新增论文",
+          "text": "每题实时获取、来源失败、每篇PDF及全部银标留档，没有把R05/R06的复用说成新下载。"
+        },
+        {
+          "section": "5. RAG独立增益：同模型、同原始问题、同输出预算",
+          "text": "查询规划版的36份输出按随机匿名ID评审。两个带检索组的证据字符上限均为10,000；原始问题不变。"
+        },
+        {
+          "section": "5. RAG独立增益：同模型、同原始问题、同输出预算",
+          "text": "十二个无检索请求与v1逐字相同，统一复用原始答案、重新盲评；原始成本保留并计入合计。"
+        },
+        {
+          "section": "5. RAG独立增益：同模型、同原始问题、同输出预算",
+          "text": "无RAG的0%支持覆盖仅表示未提供本轮外部证据，绝不表示知识正确率0。"
+        },
+        {
+          "section": "5. RAG独立增益：同模型、同原始问题、同输出预算",
+          "text": "按事实真假判定，三组本轮均获100%模型银标，不能称专家认证100%准确。"
+        },
+        {
+          "section": "5. RAG独立增益：同模型、同原始问题、同输出预算",
+          "text": "设计评分完整流程比无RAG低0.25，比关键词RAG低0.33；后者聚类区间[-0.667,-0.083]。"
+        },
+        {
+          "section": "5. RAG独立增益：同模型、同原始问题、同输出预算",
+          "text": "完整流程比关键词多7.72个百分点事实支持覆盖，但当前评分依赖相同模型的独立调用，应以小规模内部银标理解。"
+        },
+        {
+          "section": "5. RAG独立增益：同模型、同原始问题、同输出预算",
+          "text": "原始查询版同样保留：无RAG/关键词/完整流程的事实支持覆盖分别0%、63.83%、75.00%；"
+        },
+        {
+          "section": "5. RAG独立增益：同模型、同原始问题、同输出预算",
+          "text": "正确性分别3.50/3.67/3.67，设计可用性3.92/3.83/3.83。未用修复版覆盖原始结果。"
+        },
+        {
+          "section": "6. 速度：增量索引确有收益，神经查询本身更慢",
+          "text": "增量更新相对全量编码约快12.7倍，93.2%的向量无需重算。这是索引维护加速，不是单次检索加速。"
+        },
+        {
+          "section": "6. 速度：增量索引确有收益，神经查询本身更慢",
+          "text": "规划版查询的中位检索耗时：关键词0.53秒、纯向量1.64秒、混合2.02秒、完整神经流程7.07秒。"
+        },
+        {
+          "section": "6. 速度：增量索引确有收益，神经查询本身更慢",
+          "text": "重复完整检索中位7.17秒；没有证明重复请求更快。检索时间不含查询规划API，后者本轮中位6.78秒，完全相同请求可缓存。"
+        },
+        {
+          "section": "7. 可复查证据与费用",
+          "text": "- 原始结果：`workspace_rag_incremental_v1_live/report.json`、`audit.json`，14项审计通过。"
+        },
+        {
+          "section": "7. 可复查证据与费用",
+          "text": "- 统一复验：`workspace_rag_incremental_v2_planned/report.json`、`audit.json`，18项审计通过。"
+        },
+        {
+          "section": "7. 可复查证据与费用",
+          "text": "- 两版PDF hash、节点映射、全部文本覆盖、模型文件、指标重算和账本均已核验；工程回归93/93通过。"
+        },
+        {
+          "section": "7. 可复查证据与费用",
+          "text": "- 本轮已知实际4,455,294 token；SSL中断51,963及最初沙箱阻断6,036保守预留，共57,999未知；合计4,513,293。"
+        },
+        {
+          "section": "7. 可复查证据与费用",
+          "text": "- 共321次请求尝试；旧87篇历史获取成本不在本轮重计。`.env`、`.env.example`未改。"
+        }
+      ]
+    },
+    {
+      "original_document": "docs/RAG_INCREMENTAL_V2_PROTOCOL.md",
+      "sha256": "9b222094a1c9ac4e61fe6231d8a1b99c2f8e065ba29736f052f306762778ddf7",
+      "tables": [],
+      "numeric_context": [
+        {
+          "section": "RAG v2：通用查询规划后的统一复验",
+          "text": "2026-10-20，在原始v1的初步检索结果出现后制定。已看到R01b原始纯中文查询在四条路径均无相关结果。"
+        },
+        {
+          "section": "RAG v2：通用查询规划后的统一复验",
+          "text": "保留v1全部原始结果；不将v2称为未触碰的外部保留测试。修复为所有问题通用的查询规划，无题目/标签专用分支。"
+        },
+        {
+          "section": "RAG v2：通用查询规划后的统一复验",
+          "text": "同一检索式用于BM25、纯向量、无交叉编码器混合及完整神经混合，避免把翻译收益全部归给神经网络。"
+        },
+        {
+          "section": "RAG v2：通用查询规划后的统一复验",
+          "text": "同样的6个idea、12个原始查询，94篇相同论文、7篇已实际新增的PDF、同一按页索引和独立全文银标均复用。"
+        },
+        {
+          "section": "RAG v2：通用查询规划后的统一复验",
+          "text": "每题的查询规划、96组检索、三个生成对照、池内文本段评审及匿名答复评审重新执行。"
+        },
+        {
+          "section": "RAG v2：通用查询规划后的统一复验",
+          "text": "论文银标及原始标注成本在v1保留并计入合计；v2只记新增调用，不重标/删改不利标签。"
+        },
+        {
+          "section": "RAG v2：通用查询规划后的统一复验",
+          "text": "原始v1的索引速度结果复用，不称第二次全量冷启动。v2是固定语料、查询接口修复后的统一复验。"
+        }
+      ]
+    },
+    {
+      "original_document": "docs/RAG_SHARED_CONTROL_ADDENDUM.md",
+      "sha256": "2373eae2504b9e311fa05b490a1d7c8b7ab30fb5bbd9ee99a55218499881c211",
+      "tables": [],
+      "numeric_context": [
+        {
+          "section": "相同无检索对照的复用补记",
+          "text": "2026-10-20，v2生成开始前记录。v2仅改变检索查询规划，不改变原始问题、生成系统提示、"
+        },
+        {
+          "section": "相同无检索对照的复用补记",
+          "text": "模型和输出预算。无检索分支没有证据文本，因此其完整请求与v1逐字相同。"
+        },
+        {
+          "section": "相同无检索对照的复用补记",
+          "text": "全部十二个无检索请求统一复用v1的原始缓存，不根据答案质量挑选；v1已保留生成费用、请求和响应。"
+        },
+        {
+          "section": "相同无检索对照的复用补记",
+          "text": "这一补记将v2协议中的“重新执行三个生成对照”明确为：重新执行三组工作流，其中相同无检索请求允许缓存复用。"
+        },
+        {
+          "section": "相同无检索对照的复用补记",
+          "text": "目标若已派发请求或已有结果则不覆盖。复用记录包含原请求和缓存的SHA256，写入目标 `shared_controls.json`。"
+        },
+        {
+          "section": "相同无检索对照的复用补记",
+          "text": "全部原始成本计入v1与v2的合计，v2缓存命中不重复计费。这提供相同的前后控制答案并减少无意义重复调用。"
+        }
+      ]
+    },
+    {
+      "original_document": "docs/README.md",
+      "sha256": "38f220c043bb0379512b9b14a43ada086e738e0dec8cc8852b6f4bdafe505255",
+      "tables": [],
+      "numeric_context": [
+        {
+          "section": "文档导航",
+          "text": "新对话先读 [route2.md](../route2.md)：其中包含当前完整链条、实测指标、材料位置、恢复命令和下一阶段建议。"
+        },
+        {
+          "section": "文档导航",
+          "text": "下一阶段方案见 [TODO2.md](../TODO2.md)：P0 多 IDEA 规划评测、P1公式自动核验和P2首批四个Skills已有实现；任意复杂公式、表格/图形核验及外部泛化仍有待办。方案本身不充当实测结果。"
+        },
+        {
+          "section": "当前架构与使用",
+          "text": "- [Skills 真实选技/执行、按需加载对照与全部失败成本](SKILLS_V1_RESULTS.md)"
+        },
+        {
+          "section": "当前架构与使用",
+          "text": "- [公式宏/向量处理、生产自动接入及v2真实结果](FORMULA_AUTOMATION_V2.md)"
+        },
+        {
+          "section": "当前架构与使用",
+          "text": "- [两路融合：真实对照与扩库结果](RAG_FUSION_V1_RESULTS.md)"
+        },
+        {
+          "section": "当前架构与使用",
+          "text": "- [两路融合的冻结开发评测协议](RAG_FUSION_V1_PROTOCOL.md)"
+        },
+        {
+          "section": "当前架构与使用",
+          "text": "- [CPU 改进的银标对照、扩库检查与真实结果](RAG_CPU_V3_RESULTS.md)"
+        },
+        {
+          "section": "当前架构与使用",
+          "text": "- [CPU 对照的冻结评测协议](RAG_CPU_V3_PROTOCOL.md)"
+        },
+        {
+          "section": "当前架构与使用",
+          "text": "- [2026-10-20 多 IDEA 真实运行、失败与成本](PRECODING_RUN_20261020.md)"
+        },
+        {
+          "section": "当前架构与使用",
+          "text": "- [最新从零编码真实运行及全部失败成本](CODING_SCRATCH_RUN_20261019.md)"
+        },
+        {
+          "section": "当前架构与使用",
+          "text": "- [Curie 等参考项目的阅读与机制映射](CODING_REFERENCES_20261019.md)"
+        },
+        {
+          "section": "历史记录与审计",
+          "text": "- [文献、数据和 RAG 实测](AUDIT_20261019.md)：当时尚未接入编码，L3 混合 RAG 随后已补齐；原始数值和限制继续保留。"
+        },
+        {
+          "section": "历史记录与审计",
+          "text": "- [早期编码/模板运行](CODING_AGENT_RUN_20261019.md)：不代表最新从零编码状态。"
+        },
+        {
+          "section": "历史记录与审计",
+          "text": "- [上次模块整理](REORGANIZATION_20261019.md)"
+        },
+        {
+          "section": "历史记录与审计",
+          "text": "- [本次整理资产基线](asset_inventory_20261019.json)"
+        },
+        {
+          "section": "历史记录与审计",
+          "text": "- [本次资产保留核验结果](asset_verification_20261019.json)"
+        },
+        {
+          "section": "历史记录与审计",
+          "text": "- [本次缓存清理](cleanup_route2_20261019.json)、[权限受限目标重试](cleanup_route2_20261019_retry.json)与[最终重试](cleanup_route2_20261019_final.json)"
+        },
+        {
+          "section": "历史记录与审计",
+          "text": "历史报告不能删除或改写为最新实验结果。具体成功/失败、预算和 artifact 以相应工作区的原始 JSON 为准。权限受限临时缓存残留不属于研究工作区，详见 route2。"
+        }
+      ]
+    },
+    {
+      "original_document": "docs/REFERENCE_ACCESS_VERIFICATION.md",
+      "sha256": "927f904006bc0fc05c1b225d39c596965295f6c8042889db4b19bd7c06f71610",
+      "tables": [
+        {
+          "section": "原始参考连接器无用户凭据实测",
+          "markdown": "| 原始项目 | 方法 | 实测结果 |\n|---|---|---|\n| paper-search-mcp | ArxivSearcher.search | 成功，返回 Attention Is All You Need |\n| nature-academic-search | ArxivSource.search | 成功，返回 Attention Is All You Need |\n| paper-search-mcp | ArxivSearcher.download_pdf | 成功，2,215,244 字节，pypdf 解析为 15 页 |\n| paper-search-mcp | ArxivSearcher.read_paper | 成功，提取 39,599 个字符 |\n| paper-search-mcp | CrossRefSearcher.search | 成功，返回 1 条有标题的论文元数据 |\n| nature-academic-search | CrossRefSource.search | 成功，返回 1 条有标题的论文元数据 |\n| paper-search-mcp | OpenAlexSearcher.search | 失败，HTTP 429；连接器将失败转成空列表 |\n| nature-academic-search | OpenAlexSource.search | 失败，重试后 HTTP 429 |\n| paper-search-mcp | SemanticSearcher.search | 失败，HTTP 429 |\n| nature-academic-search | SemanticScholarSource.search | 失败，重试后 HTTP 429 |\n| paper-search-mcp | UnpaywallResolver.get_paper_by_doi | 没有用户邮箱时本地返回 None，未进行有效查询 |"
+        }
+      ],
+      "numeric_context": [
+        {
+          "section": "原始参考连接器无用户凭据实测",
+          "text": "验证日期：2026-10-17（Asia/Shanghai）。"
+        },
+        {
+          "section": "原始参考连接器无用户凭据实测",
+          "text": "- OpenAlex、Semantic Scholar 本次无法在无凭据情况下取得结果，因此不能标为“已验证可省凭据”。HTTP 429 只说明本次访问受限，不能证明所有访问都必须带 Key，也不能保证补 Key 后一定成功。"
+        }
+      ]
+    },
+    {
+      "original_document": "docs/REORGANIZATION_20261019.md",
+      "sha256": "20fc389ffb2d5bb72aceeea5bbb4a361b9dd07e215f079ce32658f23f37fba3f",
+      "tables": [],
+      "numeric_context": [
+        {
+          "section": "目录整理与复验记录",
+          "text": "23 个原平铺源码文件移入九个功能目录，内部导入采用规范新路径；`vendor` 保留上游代码，`_compat` 保留旧模块导入。公共 artifact 哈希、原子 JSON 写入、工作区锁抽入 `core/artifacts.py`，减少编码模块对数据下载模块的依赖。12 个原测试文件按功能归类，增加两个目录迁移回归测试。"
+        },
+        {
+          "section": "目录整理与复验记录",
+          "text": "所有 11 个 `workspace*` 保留原位置。`.env`、`.env.example`、IDEA 库、数据库、PDF、解析结果、向量知识库、压缩缓存、银标、数据集、冻结规格、最终代码和已有实验记录均保留。最终项目的六个源码文件没有改写。关键保护文件 60 项的 SHA-256 与整理前一致，清单是 `reorganization_protected_manifest.json`。"
+        },
+        {
+          "section": "目录整理与复验记录",
+          "text": "- pytest：62/62 通过。"
+        },
+        {
+          "section": "目录整理与复验记录",
+          "text": "- 最终项目独立 Docker 复验：22/22；报告位于 `workspace_batch_vit_v2/coding/coding_c8a52f108d47c4227a8d/rechecks/20261019T104119215831Z/report.json`。"
+        },
+        {
+          "section": "目录整理与复验记录",
+          "text": "- 实际 `code --resume`：目录迁移使 harness hash 更新，重新验收后返回 `coding_verified`，`verification_2/verifier.json` 为 22/22。累计 4 次模型调用、4 次工具调用、37,386 token；本次恢复增加 2 次调用和 19,765 token。"
+        },
+        {
+          "section": "目录整理与复验记录",
+          "text": "清理范围仅为项目根目录的 pytest 缓存，以及 src/tests/scripts 和根目录的 `__pycache__`。删除 48 个可再生缓存目录，共 799,315,663 字节（约 762.3 MiB）。4 个目录被 Windows 拒绝访问，保留并记入 `reorganization_cleanup.json`；没有修改其权限。缓存可通过运行测试或 Python 重新生成，删除的缓存未备份。"
+        },
+        {
+          "section": "目录整理与复验记录",
+          "text": "`.test_tmp` 和历史工作区没有仅因名称像临时目录而删除；其中可能包含此前运行产物。原环境与 `.venv` 保留。后续可用 `scripts/maintenance/clean_test_cache.ps1` 预览清单，加 `-Apply` 仅清理相同受限范围。"
+        }
+      ]
+    },
+    {
+      "original_document": "docs/SKILLS.md",
+      "sha256": "07072626547be126a497131840dd5bd52b70d22dee1cff7b66f029221bb8e0f1",
+      "tables": [],
+      "numeric_context": [
+        {
+          "section": "文件与调用契约",
+          "text": "- `load_skill(name)`：返回正文、当前 schema、版本、SHA-256，并记入会话。"
+        },
+        {
+          "section": "文件与调用契约",
+          "text": "- `invoke_skill(name, sha256, arguments)`：仅执行本会话已加载且 hash 未变的 Skill；内部仍经原 `ToolExecutor`。"
+        },
+        {
+          "section": "文件与调用契约",
+          "text": "`run_skill_agent()` 只向模型暴露三个控制工具。模型自行要求直接调用隐藏业务工具会被拒绝。Skill 加载不会增加权限。每轮最多 16 个推理步骤、24 次控制工具调用、8 次 Skill 执行；总体模型账本同时覆盖外层选技和内层规划/评审，调用前预留，失败及未知 usage 保留预留。客户端预算不等于服务商计费保证。"
+        },
+        {
+          "section": "留档与验证",
+          "text": "真实评测与限制见 [本轮 Skills 实测](SKILLS_V1_RESULTS.md)。可复跑："
+        },
+        {
+          "section": "留档与验证",
+          "text": "v1 实跑后修正了对照报告的失败判定：底层工具成功、但最终模型回答失败时，整条工作流不得计通过。"
+        },
+        {
+          "section": "留档与验证",
+          "text": "`audit_skills.py` 依据最终结果工件独立重算 v1 的这一条件。当前脚本 hash 已变化，因此重新完整实验使用示例中的 v2 目录；不要覆盖 v1 协议或删除旧账本。"
+        }
+      ]
+    },
+    {
+      "original_document": "docs/SKILLS_V1_RESULTS.md",
+      "sha256": "def2b296c12a829993be988e26bc55a6aaa0f8a5021920e7bb4fea127b7153f0",
+      "tables": [
+        {
+          "section": "多技能串联与上下文对照",
+          "markdown": "| 模式 | 首次输入 token（两次） | 完整成功流程 token（两次） | 每次模型调用数 | 完成并正确拒答 |\n|---|---:|---:|---:|---:|\n| 按需加载 | 881 / 881 | 4,517 / 4,604 | 3 / 3 | 2/2 |\n| 全部正文常驻 | 2,817 / 2,817 | 10,698 / 10,700 | 3 / 3 | 2/2 |"
+        }
+      ],
+      "numeric_context": [
+        {
+          "section": "首批科研 Skills：真实运行与边界",
+          "text": "日期：2026-10-20。本轮封装和验证 coding 前的成熟接口，没有训练、没有编码科研实验，没有改 `.env`。实现说明和调用命令见 [Skills 指南](SKILLS.md)。"
+        },
+        {
+          "section": "实现与选技",
+          "text": "真实模型处理固定的 12 个中英文开发任务，要求既选对、又实际加载且只加载应选 Skill；结果 **12/12**。包括两种多目标组合、容易误判的“只解释论文实验设计”、两个不受支持的负例。负例误触发 **0/2**。预期答案只由评测器读取，未放入模型上下文。这是开发路由契约，不是科研金标，也不是外部未见题或大量 Skill 的泛化测评。"
+        },
+        {
+          "section": "真实执行",
+          "text": "- 文档入库：真实 C-LoRA PDF，生成 **612 个节点**；`pymupdf-1.28.2`、`review_required`、公式 `not_assessed` 均保留。Skill/原工具的论文 ID、节点数、解析器和质量状态一致。"
+        },
+        {
+          "section": "真实执行",
+          "text": "- 既有库检索：真实本地神经检索，单次返回 **5 条原文引用**；Skill/原工具的答案、引用、位置校验状态和未支持陈述计数一致。模型自行做了第二次定向取证，仍明确保留部分机制证据不足的结论。没有凭文献方法说明宣称解决了遗忘。"
+        },
+        {
+          "section": "真实执行",
+          "text": "- 文献获取：由真实模型选择 Skill 后，检索到 **2 篇候选、选中 1 篇、下载 1 篇、解析 1 篇、全文分析 1 篇、生成 1 份计划**。获取流程和失败信息留在原 DAG 与 Skill 工件中。"
+        },
+        {
+          "section": "真实执行",
+          "text": "- 规划与评审：职责交接修复后，真实模型通过 `study-plan` 完成 ViT 的 LoRA rank=2/8/16 比较，最终 **ready_for_coding**。首版机械检查、初审通过，但独立终审发现 alpha 随 rank 同时变化，违背“其他因素相同”；第二版固定三组 alpha=8、dropout=0，机械 **10/10**、初审和独立终审均通过。引用 **2 条**获银标支持，验证选参/测试隔离/相同调参预算/配对种子已冻结。契约列出 CIFAR100、DTD、Pets，三个比例与三个种子，共 243 个后续调参/评估作业，**本轮没有执行这些作业**。规划组件 153,115 token，含选技与最终汇报的总实际 **170,855 token**，不重复相加。"
+        },
+        {
+          "section": "真实执行",
+          "text": "独立试用使用隔离的 94 篇语料副本，通过真实 `load_skill → invoke_skill → retrieve_evidence` 返回 5 条引用、`verified=true`、`unsupported_claims=0`；没有付费 LLM 调用。试用者核对了被引节点全文，发现自动摘录未包含完整公式，保留了公式未核验的限制。原始论文库运行前后 SHA-256 不变，原始回答、调用结果、来源与 trace 均在 `workspace_skills_independent_trial/`。"
+        },
+        {
+          "section": "多技能串联与上下文对照",
+          "text": "真实模型执行“将 C-LoRA PDF 入库，再查其抗遗忘机制”，按 trace 顺序先完成 `document-ingest`，再进行三次 `evidence-retrieve`，返回引用数分别为 **5、6、8**。最终回答完成，保留完整机制证据不足的限制。该次成功流程为 **61,644 token**；此前因预留不足中断的一次为 35,534 token，两次共 **97,178 token**。续跑复用了同一文档的解析缓存，不能称为两个独立冷启动。"
+        },
+        {
+          "section": "多技能串联与上下文对照",
+          "text": "该小样本中，按需加载首轮输入少 **68.7%**，成功完整流程平均 token 少 **57.4%**。但按需组另有一次最后回答前的远端断连：已知实际 2,425 token、未知保守预留 16,660 token。纳入全部尝试后，按需组记账 **28,206**，常驻组 **21,398**，按需组反而高 **31.8%**。因此只可说按需加载缩短了提示、在成功案例中观察到成本下降；没有证明任意任务或实际部署总体成本一定更低。网关报告用量存在波动，两次重复不足以做统计推断。"
+        },
+        {
+          "section": "预算修复与工程检查",
+          "text": "首轮完整规划尝试（预算预留修复后）在四轮内仍未获得科研 Gate 接受：外层将“调用检索、评审、报告产物”等流程要求放入研究问题，内层误以为自己的角色必须有工具权限才能提交方案。这次失败完整保留，外层用量 149,414 token。现已明确宿主与方案作者/评审者的职责，将实际宿主协议交给评审，增加正确的 IDEA 字段说明并在快照前校验；没有删除原科学约束或放宽编译/引用/独立终审要求。上述成功是修复后的定向开发复验，经两版方案通过，不是未见题首版成功。"
+        },
+        {
+          "section": "预算修复与工程检查",
+          "text": "兼容网关两次报告的实际总用量超过原本按输入字节/输出上限计算的预留：一次规划第一轮、一次串联中的后续轮。原调用按策略停止，实际用量与错误保留；没有当作成功。现对 Skill 的外层及规划组件增加 **32,768 token 调用前余量**，不增加请求的 `max_tokens`。响应和 usage 在结算前写盘；若仍超过预留，继续停止。未知 usage 不视为零，旧账本不重置。"
+        },
+        {
+          "section": "预算修复与工程检查",
+          "text": "另有 12 次初始尝试被沙箱网络套接字权限拒绝，以及一次最终回答前的远端断连；失败均保留。客户端账本中的未知预留是保守记账，不是已知服务商实际计费。"
+        },
+        {
+          "section": "预算修复与工程检查",
+          "text": "完整回归 **133 项通过**。新增检查覆盖元信息与正文分离、未加载/变更 hash、加载后权限撤回、越权路径、隐藏工具直调、schema、dispatch 前预算、嵌套模型总账、本工作区冻结快照、语料和数据变更导致计划缓存失效、网关余量及超报响应留档。低层输出一致性不能替代科研质量评测。"
+        },
+        {
+          "section": "预算修复与工程检查",
+          "text": "离线审计检查 **18 份**真实 Skill 调用工件，全部符合先加载、hash 一致及状态一致。含所有保留的失败/重试/修复，合计 **37 个 run、113 次模型 dispatch 尝试**，已知实际 **662,924 token**，未知保守预留 **152,390 token**，账本合计 **815,314 token**。初始沙箱拒绝的请求并未确认到达服务商，但仍保留预留；不能把合计数说成精确实际账单。所有组件费用都以外层总账统计一次，未将规划组件 153,115 再次叠加。本轮付费模型验证已结束。"
+        },
+        {
+          "section": "复核材料",
+          "text": "- `workspace_skills_v1/protocol.json`：原冻结任务集、Skill 文档、脚本和输入 PDF hash。"
+        },
+        {
+          "section": "复核材料",
+          "text": "- `workspace_skills_v1/report.json`：真实选技、执行和两种上下文模式结果。"
+        },
+        {
+          "section": "复核材料",
+          "text": "- `workspace_skills_v1/audit.json`：独立重算工作流完成状态、逐工件检查先加载/hash、全部尝试成本和最终源码 hash。"
+        },
+        {
+          "section": "复核材料",
+          "text": "- `workspace_skills_composition_v1/report.json`：真实依赖串联验证。"
+        },
+        {
+          "section": "复核材料",
+          "text": "- `workspace_skills_study_v2/report.json`：职责交接修复后的真实规划、Gate、预算与工件位置。"
+        },
+        {
+          "section": "复核材料",
+          "text": "v1 恢复时只补跑失败案例，成功案例复用已有记录。因此保留了预算修复前的成功执行；当前语料快照与预算修复另有回归验证，规划补跑采用修复后的代码。初始协议没有冻结所有 runtime 源码，最终版本 hash 在审计文件中补记；不能把本轮说成全程同一代码版本的盲测。"
+        },
+        {
+          "section": "复核材料",
+          "text": "当前评测脚本已修正“底层调用成功但最终回答失败”不得计整流程通过的问题。v1 的原始失败没有被修改或删除，审计器依据最终结果工件重算。重新完整测评须使用新的输出目录，避免覆盖冻结协议。"
+        },
+        {
+          "section": "复核材料",
+          "text": "原始 v1 汇总的按需第 2 次行还误选了目录中最后一个旧账本，导致 run ID 与计数不匹配；审计器现按确切 run ID 重算，上表采用审计口径。当前脚本也已修正此错误，原报告与失败保留用于复核。"
+        }
+      ]
+    }
+  ]
+}

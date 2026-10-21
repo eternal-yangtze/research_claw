@@ -1,0 +1,17 @@
+{
+  "version": "formula-pilot-v1",
+  "purpose": "First real-paper formula recognition and provenance pilot, not an accuracy benchmark",
+  "frozen_before_inspecting_formula_outputs": true,
+  "reference_type": "source_derived_silver",
+  "human_gold": false,
+  "selection_rule": "Three existing PEFT/ViT papers with available PDFs and static sources; one formula-bearing method/background page each",
+  "cases": [
+    {"id": "explora", "arxiv_id": "2406.10973v5", "pdf": "workspace_batch_vit_v2/artifacts/papers/2406.10973.pdf", "pages": [3, 3]},
+    {"id": "vpt", "arxiv_id": "2203.12119v2", "pdf": "workspace_batch_vit_v2/artifacts/papers/2203.12119.pdf", "pages": [4, 4]},
+    {"id": "clora", "arxiv_id": "2502.17920v2", "pdf": "workspace_batch_vit_v2/artifacts/papers/2502.17920.pdf", "pages": [3, 3]}
+  ],
+  "metrics": ["detected_formula_regions", "original_crop_coverage", "source_version_verification", "normalized_source_corroboration", "disputed_rate", "unverified_rate"],
+  "not_measured": ["gold_recognition_accuracy", "detection_recall", "general_semantic_equivalence", "table_and_figure_accuracy"],
+  "training": false,
+  "paid_llm_calls": false
+}

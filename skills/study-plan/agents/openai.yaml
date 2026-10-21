@@ -1,0 +1,4 @@
+interface:
+  display_name: "Plan a research study"
+  short_description: "Draft and review a study before any coding begins"
+  default_prompt: "Use $study-plan to complete the research task within its evidence and budget limits."

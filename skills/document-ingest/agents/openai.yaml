@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ingest documents"
+  short_description: "Import local research files with traceable evidence"
+  default_prompt: "Use $document-ingest to complete the research task within its evidence and budget limits."

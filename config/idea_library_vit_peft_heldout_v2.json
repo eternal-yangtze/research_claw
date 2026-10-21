@@ -1,0 +1,49 @@
+{
+  "schema_version": "idea-library-v2-heldout",
+  "created_at": "2026-10-20",
+  "scope": "Internally authored prospective unseen compositions, frozen before paid runs; no confidential benchmark claim",
+  "ideas": [
+    {
+      "idea_id": "h01_rank_dropout_interaction",
+      "title": "Does LoRA dropout have a rank-dependent effect?",
+      "domain": "ai_ml",
+      "research_question": "On DTD and Pets at 10% labels, estimate the interaction between LoRA rank (2,16) and branch dropout (0,0.1). Use all four cells, alpha/r=1, all-block Q/V adaptation and weight decay=0.05. Separate interaction from marginal effects; include a linear-probe reference. Accuracy is primary; report macro F1, train-validation gap, ECE and trainable parameters.",
+      "description": "On DTD and Pets at 10% labels, estimate the interaction between LoRA rank (2,16) and branch dropout (0,0.1). Use all four cells, alpha/r=1, all-block Q/V adaptation and weight decay=0.05. Separate interaction from marginal effects; include a linear-probe reference. Accuracy is primary; report macro F1, train-validation gap, ECE and trainable parameters."
+    },
+    {
+      "idea_id": "h02_vpt_adapter_label_interaction",
+      "title": "Do PEFT families respond differently to label scarcity?",
+      "domain": "ai_ml",
+      "research_question": "On DTD and Pets compare shallow VPT with 10 prompts and post-MLP residual bottleneck adapters of width32 at both 10% and 100% labels, plus linear probe at both fractions. Estimate whether the adapter-minus-VPT accuracy gap changes with label fraction using nested subsets. Do not assume either method wins. Accuracy is primary; macro F1 and parameter counts are secondary.",
+      "description": "On DTD and Pets compare shallow VPT with 10 prompts and post-MLP residual bottleneck adapters of width32 at both 10% and 100% labels, plus linear probe at both fractions. Estimate whether the adapter-minus-VPT accuracy gap changes with label fraction using nested subsets. Do not assume either method wins. Accuracy is primary; macro F1 and parameter counts are secondary."
+    },
+    {
+      "idea_id": "h03_rank_block_interaction",
+      "title": "Can rank compensate for narrower block scope?",
+      "domain": "ai_ml",
+      "research_question": "On DTD and Pets at 25% labels use a 2x2 LoRA study: rank2/rank16 crossed with last3/all12 blocks. Alpha/r=1, dropout0, weight decay0.05 and Q/V targets are fixed. Include linear probe. Estimate the interaction of rank and block coverage on accuracy, rather than merely select a best arm. Report parameter costs and macro F1.",
+      "description": "On DTD and Pets at 25% labels use a 2x2 LoRA study: rank2/rank16 crossed with last3/all12 blocks. Alpha/r=1, dropout0, weight decay0.05 and Q/V targets are fixed. Include linear probe. Estimate the interaction of rank and block coverage on accuracy, rather than merely select a best arm. Report parameter costs and macro F1."
+    },
+    {
+      "idea_id": "h04_calibration_across_peft",
+      "title": "Do accuracy and probability quality agree across PEFT families?",
+      "domain": "ai_ml",
+      "research_question": "On DTD and Pets with 25% labels compare LoRA rank8 alpha8 dropout0, shallow VPT prompt10 and bottleneck adapter width32, plus a linear probe. NLL is the sole primary endpoint. Keep accuracy, macro F1, 15-bin equal-width ECE and reliability-bin summaries secondary; save test logits. Define per-dataset NLL contrasts against linear probe and explain how discordant accuracy/ECE/NLL outcomes are interpreted. No test-fitted calibration.",
+      "description": "On DTD and Pets with 25% labels compare LoRA rank8 alpha8 dropout0, shallow VPT prompt10 and bottleneck adapter width32, plus a linear probe. NLL is the sole primary endpoint. Keep accuracy, macro F1, 15-bin equal-width ECE and reliability-bin summaries secondary; save test logits. Define per-dataset NLL contrasts against linear probe and explain how discordant accuracy/ECE/NLL outcomes are interpreted. No test-fitted calibration."
+    },
+    {
+      "idea_id": "h05_new_datasets_transfer",
+      "title": "Does the adaptation gain persist on additional image tasks?",
+      "domain": "ai_ml",
+      "research_question": "Use CIFAR100 and Flowers102, not DTD or Pets, with 25% labels. Compare all-block Q/V LoRA rank8 alpha8 dropout0 against full fine-tuning and linear probe. Define accuracy gains over linear probe per dataset and the between-dataset difference of gains. Do not pool classes or assume the same gain on both datasets. Report macro F1 and trainable parameters; retain validation-only equal-budget tuning and three seeds.",
+      "description": "Use CIFAR100 and Flowers102, not DTD or Pets, with 25% labels. Compare all-block Q/V LoRA rank8 alpha8 dropout0 against full fine-tuning and linear probe. Define accuracy gains over linear probe per dataset and the between-dataset difference of gains. Do not pool classes or assume the same gain on both datasets. Report macro F1 and trainable parameters; retain validation-only equal-budget tuning and three seeds."
+    },
+    {
+      "idea_id": "h06_adapter_regularization_interaction",
+      "title": "Does adapter width change the effect of optimizer regularization?",
+      "domain": "ai_ml",
+      "research_question": "On DTD and Pets with 10% labels cross residual bottleneck adapter width16/64 with AdamW weight decay0/0.05, giving four adapter arms and a linear-probe reference. Fix post-MLP residual placement, GELU, zero-up initialization, dropout0, all blocks and trainable head. Primary accuracy analysis must isolate width-by-decay interaction and report per-dataset uncertainty; secondary macro F1, train-validation gap and parameter costs.",
+      "description": "On DTD and Pets with 10% labels cross residual bottleneck adapter width16/64 with AdamW weight decay0/0.05, giving four adapter arms and a linear-probe reference. Fix post-MLP residual placement, GELU, zero-up initialization, dropout0, all blocks and trainable head. Primary accuracy analysis must isolate width-by-decay interaction and report per-dataset uncertainty; secondary macro F1, train-validation gap and parameter costs."
+    }
+  ]
+}

@@ -1,0 +1,69 @@
+{
+  "version": "rag-incremental-v1",
+  "seed": 20261020,
+  "source": "workspace_precoding_v4_heldout",
+  "scope": "Evidence retrieval and evidence-grounded research design before coding; pretrained vision transformer parameter-efficient adaptation",
+  "k": [5, 10],
+  "candidate_limit": 60,
+  "max_new_papers_per_idea": 2,
+  "label_part_chars": 60000,
+  "generation_context_chars": 10000,
+  "retrieval_modes": ["bm25", "dense", "hybrid", "full"],
+  "generation_modes": ["no_rag", "bm25", "full"],
+  "ideas": [
+    {
+      "id": "R01",
+      "idea": "在小样本图像分类的预训练ViT适配中，研究动态分配低秩预算与固定rank的取舍。",
+      "search": "AdaLoRA adaptive rank allocation vision transformer",
+      "queries": [
+        {"id": "R01a", "text": "How does adaptive budget allocation redistribute low-rank capacity during fine-tuning, and what evidence distinguishes it from using a fixed equal rank?"},
+        {"id": "R01b", "text": "动态低秩预算分配能否直接作为小样本视觉分类的已验证结论？请区分原论文任务证据与需要新增的视觉迁移对照。"}
+      ]
+    },
+    {
+      "id": "R02",
+      "idea": "研究权重方向与幅值分解是否适合替代ViT中的普通LoRA，并明确新增实验的边界。",
+      "search": "DoRA weight decomposed low rank adaptation vision",
+      "queries": [
+        {"id": "R02a", "text": "What changes when weight magnitude and direction are adapted separately rather than applying an ordinary low-rank weight update? Identify the supported mechanism and experimental setting."},
+        {"id": "R02b", "text": "在预训练视觉模型上比较DoRA与LoRA时，应如何根据已有论文设置参数预算和对照？哪些小样本收益仍不能当作已证实事实？"}
+      ]
+    },
+    {
+      "id": "R03",
+      "idea": "在相同标签预算下研究特征缩放和平移与bottleneck adapter的差异。",
+      "search": "Scaling Shifting Your Features efficient fine tuning",
+      "queries": [
+        {"id": "R03a", "text": "How can feature scaling and shifting adapt a frozen visual backbone, and under which conditions can the adaptation be re-parameterized for inference?"},
+        {"id": "R03b", "text": "特征缩放平移与瓶颈适配器在可训练参数位置、非线性和推理开销上有什么区别？为ViT分类提出受控比较，区分证据与建议。"}
+      ]
+    },
+    {
+      "id": "R04",
+      "idea": "研究跨层共享低秩因子的张量分解适配与逐层独立LoRA的参数效率。",
+      "search": "FacT Factor Tuning lightweight adaptation vision transformer",
+      "queries": [
+        {"id": "R04a", "text": "What tensors or factors are shared in factor tuning for vision transformers, and how does this differ from independent low-rank updates to each weight matrix?"},
+        {"id": "R04b", "text": "跨层因子共享是否已经证明在所有小样本数据集上胜过独立LoRA？请检索视觉适配证据，并设计公平的参数预算比较。"}
+      ]
+    },
+    {
+      "id": "R05",
+      "idea": "研究并联残差适配器的缩放系数与串联插入方式在小样本ViT分类中的区别。",
+      "search": "AdaptFormer parallel adapter scaling visual recognition",
+      "queries": [
+        {"id": "R05a", "text": "How does a parallel bottleneck adaptation branch combine with the frozen transformer feed-forward pathway, and what role does its scaling factor play?"},
+        {"id": "R05b", "text": "在ViT分类中比较并联与串联adapter时，哪些结构细节和训练因素需要控制？已有视觉识别结果能支持什么、不能支持什么？"}
+      ]
+    },
+    {
+      "id": "R06",
+      "idea": "研究视觉提示在不同层的插入位置以及预训练方式变化时的迁移稳定性。",
+      "search": "visual prompt tuning shallow deep self supervised transformers",
+      "queries": [
+        {"id": "R06a", "text": "What differs between shallow and deep visual prompt insertion, and why may the pretraining objective change their downstream transfer behavior?"},
+        {"id": "R06b", "text": "视觉提示在监督与自监督预训练ViT上是否应使用相同插入策略？给出论文证据、局限和小样本分类的受控验证方案。"}
+      ]
+    }
+  ]
+}

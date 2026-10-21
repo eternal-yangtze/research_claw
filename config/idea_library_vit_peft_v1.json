@@ -1,0 +1,161 @@
+{
+  "schema_version": "idea-library-v1",
+  "library_version": "vit-peft-planning-v1",
+  "created_at": "2026-10-20",
+  "domain_scope": "Small-data image classification with parameter-efficient adaptation of pretrained vision transformers",
+  "status": "authored_not_evaluated",
+  "benchmark_manifest": "config/benchmarks/precoding_v1.json",
+  "usage_notes": [
+    "Reuse paper facts, parsing, neural indexes and dataset manifests; recompute Idea-specific relevance, evidence and plans.",
+    "Every atomic claim is a testable hypothesis, not an established result.",
+    "Existing batch-research can load these entries; a low-cost benchmark runner and task-dependent frozen specs are not implemented yet.",
+    "Do not launch batch-research separately for all entries to simulate the proposed low-cost evaluation.",
+    "Search queries are retrieval starting points, not claims that a paper reports the proposed comparison."
+  ],
+  "ideas": [
+    {
+      "idea_id": "vit_rank_tradeoff",
+      "title": "LoRA rank versus accuracy and trainable parameters",
+      "domain": "ai_ml",
+      "difficulty": "beginner_to_intermediate",
+      "description": "在同一个预训练 ViT 和固定小样本分类协议下，比较 LoRA rank=2、8、16，研究增加 rank 是否值得其参数成本；不预设更大的 rank 一定更好。",
+      "research_question": "On DTD and Oxford-IIIT Pet using 25% of the training pool, how does LoRA rank 2, 8 or 16 trade classification accuracy against trainable parameter count?",
+      "atomic_claims": ["Increasing LoRA rank may change accuracy and parameter cost; the relationship need not be monotonic.", "A lower-rank configuration may offer a better accuracy-cost trade-off."],
+      "success_criteria": ["Compare ranks 2, 8 and 16 with alpha/r=1, identical target modules, dropout and preprocessing.", "Use fixed train/validation/test splits, validation-only equal-budget LR selection and seeds 42, 43 and 44.", "Report accuracy, macro F1, trainable parameters, training time and uncertainty; retain all rank results."],
+      "subproblems": ["Which vision LoRA papers specify rank, scaling and target modules?", "How can a fair rank comparison separate capacity from tuning budget?", "Which accuracy-parameter trade-offs should be reported without claiming a universal best rank?"],
+      "search_queries": [{"source": "arxiv", "query": "LoRA vision transformer rank parameter efficient image classification"}, {"source": "cvf", "query": "low rank adaptation vision transformer"}]
+    },
+    {
+      "idea_id": "vit_lora_dropout",
+      "title": "LoRA dropout under scarce labels",
+      "domain": "ai_ml",
+      "difficulty": "beginner_to_intermediate",
+      "description": "只改变 LoRA 分支 dropout，比较 0 与 0.1 在 10% 训练标签下的表现，以检验轻量正则化是否能缓解过拟合。",
+      "research_question": "With 10% of the DTD and Pet training labels, does LoRA branch dropout 0.1 improve generalization over dropout 0 at fixed rank 8?",
+      "atomic_claims": ["LoRA dropout may reduce overfitting under limited labels.", "Regularization may also hurt accuracy, so both outcomes must be retained."],
+      "success_criteria": ["Use rank=8, alpha=8 and Q/V targets for both dropout conditions; hold other regularization constant.", "Use identical 10% stratified subsets, validation-only LR selection and three fixed seeds.", "Report train/validation gap, accuracy, macro F1 and ECE without selecting on test results."],
+      "subproblems": ["How is dropout applied to the LoRA branch rather than the frozen backbone?", "Which evidence supports low-data regularization as a question rather than a known improvement?", "How should overfitting and test generalization be evaluated separately?"],
+      "search_queries": [{"source": "arxiv", "query": "LoRA dropout regularization vision transformer few shot"}, {"source": "openalex", "query": "low rank adaptation small dataset regularization"}]
+    },
+    {
+      "idea_id": "vit_lora_block_scope",
+      "title": "Restricting LoRA to late transformer blocks",
+      "domain": "ai_ml",
+      "difficulty": "intermediate",
+      "description": "比较只适配 ViT 最后 3 层、最后 6 层和全部 12 层，考察减少适配层数是否能保留大部分准确率。",
+      "research_question": "On a 12-block pretrained ViT-B with 25% labels, can LoRA in the last 3 or 6 blocks approach all-block LoRA accuracy on DTD and Pet with fewer trainable parameters?",
+      "atomic_claims": ["Late-block adaptation may be sufficient for some small image datasets.", "The cost-accuracy relationship may differ between texture and object classification."],
+      "success_criteria": ["Compare last-3, last-6 and all-12 block scopes at fixed rank=8, alpha=8, dropout=0 and Q/V targets.", "Define exact block indices and verify frozen parameters; use the same datasets, subsets and three seeds.", "Report per-dataset accuracy differences and parameter counts; treat a 0.02 accuracy margin as a prespecified design choice, not a paper fact."],
+      "subproblems": ["Which evidence motivates layer-selective adaptation?", "How should the exact target-block scope be specified and checked?", "What evidence is needed before treating reduced block coverage as an acceptable substitute?"],
+      "search_queries": [{"source": "arxiv", "query": "selective layer LoRA vision transformer fine tuning"}, {"source": "openalex", "query": "parameter efficient vision transformer layer selection"}]
+    },
+    {
+      "idea_id": "vit_vpt_prompt_length",
+      "title": "Shallow visual prompt length in small-data transfer",
+      "domain": "ai_ml",
+      "difficulty": "beginner_to_intermediate",
+      "description": "比较 shallow VPT 的 5、10、20 个视觉 prompt token，保持插入位置和骨干冻结规则相同，研究参数量与性能取舍。",
+      "research_question": "How do 5, 10 and 20 shallow visual prompt tokens affect 25%-label DTD and Pet classification on the same pretrained ViT?",
+      "atomic_claims": ["Prompt length may affect both classification quality and adaptation cost.", "More prompt tokens need not improve small-data transfer."],
+      "success_criteria": ["Use only shallow prompts with a trainable classification head; keep backbone, placement and initialization policy fixed.", "Compare lengths 5, 10 and 20 and a linear-probe reference with equal validation-tuning budgets.", "Report accuracy, macro F1, trainable parameters and training time over three seeds."],
+      "subproblems": ["How do shallow and deep VPT differ and which variant is supported?", "Where are prompts inserted relative to CLS and positional embeddings?", "How should prompt count and parameter cost be compared fairly?"],
+      "search_queries": [{"source": "arxiv", "query": "visual prompt tuning shallow prompt length image classification"}, {"source": "cvf", "query": "visual prompt tuning"}]
+    },
+    {
+      "idea_id": "vit_adapter_width",
+      "title": "Bottleneck adapter width versus transfer performance",
+      "domain": "ai_ml",
+      "difficulty": "beginner_to_intermediate",
+      "description": "比较相同插入位置的 bottleneck adapter 宽度 16、32、64，评估小样本下是否需要更宽的适配器。",
+      "research_question": "At 25% labels on DTD and Pet, how do adapter bottleneck widths 16, 32 and 64 affect accuracy and parameter cost?",
+      "atomic_claims": ["Narrower adapters may retain useful transfer performance at lower parameter cost.", "The appropriate width may depend on the target dataset."],
+      "success_criteria": ["Fix residual insertion after the original block MLP update, activation and zero-up-projection initialization.", "Freeze the backbone and train adapters plus head; compare widths 16, 32 and 64 with a linear probe.", "Use equal validation budgets and three seeds; report accuracy, macro F1, trainable parameters and runtime."],
+      "subproblems": ["Which papers support residual bottleneck adapter components?", "Which placement and initialization choices must be explicit rather than inferred?", "How can width be varied without changing other architectural factors?"],
+      "search_queries": [{"source": "arxiv", "query": "vision transformer bottleneck adapter parameter efficient tuning"}, {"source": "cvf", "query": "AdaptFormer vision transformer"}]
+    },
+    {
+      "idea_id": "vit_lora_weight_decay",
+      "title": "Weight decay for low-data LoRA adaptation",
+      "domain": "ai_ml",
+      "difficulty": "beginner_to_intermediate",
+      "description": "在 10% 标签下比较 AdamW weight decay=0 与 0.05，固定 LoRA rank 和 dropout，以隔离 weight decay 的影响。",
+      "research_question": "Does AdamW weight decay 0.05 improve 10%-label DTD and Pet LoRA generalization compared with zero decay, at rank 8 and dropout 0?",
+      "atomic_claims": ["Weight decay may change overfitting and classification generalization.", "Its effect must be separated from dropout and LR-selection differences."],
+      "success_criteria": ["Compare weight decay 0 and 0.05 with rank=8, alpha=8, dropout=0 and fixed Q/V targets.", "Specify decay parameter groups, including bias/norm exclusions, and use identical data and tuning budgets.", "Report training/validation gap, test accuracy, macro F1 and ECE over three seeds."],
+      "subproblems": ["Which trainable parameter groups receive weight decay?", "What controls distinguish optimizer regularization from dropout?", "What result would support, weaken or leave the hypothesis inconclusive?"],
+      "search_queries": [{"source": "arxiv", "query": "LoRA weight decay regularization vision transformer"}, {"source": "openalex", "query": "parameter efficient fine tuning optimizer regularization image classification"}]
+    },
+    {
+      "idea_id": "vit_low_label_lora_vs_full",
+      "title": "LoRA versus full fine-tuning with 10% labels",
+      "domain": "ai_ml",
+      "difficulty": "beginner_to_intermediate",
+      "description": "将主要问题限定到 10% 标签，比较固定 rank LoRA 与全参数微调，并用 linear probe 作为低成本参照。",
+      "research_question": "With only 10% training labels on DTD and Pet, can rank-8 LoRA remain within 0.02 absolute accuracy of full fine-tuning while using fewer trainable parameters?",
+      "atomic_claims": ["LoRA may approach full fine-tuning accuracy under label scarcity.", "A smaller trainable set does not by itself guarantee lower wall time or peak memory."],
+      "success_criteria": ["Compare LoRA, full fine-tuning and linear probing on the same pretrained checkpoint, 10% subsets and three seeds.", "Keep method-specific LR search budgets equal and select on validation only.", "Report per-dataset accuracy differences, uncertainty, trainable-parameter ratio, time and measured memory when available; do not assume the 0.02 margin is met."],
+      "subproblems": ["Which baseline families support an interpretable low-label comparison?", "How should the accuracy margin and parameter saving be prespecified?", "How should CPU-only or unavailable memory measurements be reported?"],
+      "search_queries": [{"source": "arxiv", "query": "LoRA full fine tuning vision transformer few shot classification"}, {"source": "cvf", "query": "parameter efficient fine tuning small data vision transformer"}]
+    },
+    {
+      "idea_id": "vit_label_fraction_interaction",
+      "title": "Label availability and the relative benefit of LoRA",
+      "domain": "ai_ml",
+      "difficulty": "beginner_to_intermediate",
+      "description": "比较 25% 与 100% 标签时 LoRA 相对 full fine-tuning 的准确率差异，研究方法收益是否随标注量变化。",
+      "research_question": "Does the accuracy gap between rank-8 LoRA and full fine-tuning change from 25% to 100% labels on DTD and Pet?",
+      "atomic_claims": ["The relative benefit of LoRA may interact with available training labels.", "A result at one label fraction cannot establish performance at another."],
+      "success_criteria": ["Use nested stratified 25%/100% training subsets with unchanged validation/test membership.", "Compare LoRA and full fine-tuning with identical pretrained initialization policy and three fixed seeds.", "Specify a fair validation-only LR selection policy across fractions; report paired accuracy gaps and their change, not only pooled accuracy."],
+      "subproblems": ["What low-data evaluation protocols avoid changing the test population?", "How can data-fraction and method effects be separated?", "How should uncertainty in the difference of method gaps be reported?"],
+      "search_queries": [{"source": "arxiv", "query": "parameter efficient vision transformer data efficiency fine tuning"}, {"source": "openalex", "query": "LoRA image classification training data size"}]
+    },
+    {
+      "idea_id": "vit_cross_dataset_gain",
+      "title": "Consistency of LoRA gains across textures and pet images",
+      "domain": "ai_ml",
+      "difficulty": "beginner_to_intermediate",
+      "description": "在 DTD 和 Oxford-IIIT Pet 上分别比较 LoRA 与 linear probe，检查在两个目标领域上的提升是否一致。",
+      "research_question": "At 25% labels, does rank-8 LoRA improve over linear probing on both DTD texture classification and Oxford-IIIT Pet classification?",
+      "atomic_claims": ["LoRA gains over a frozen-backbone linear probe may vary by target dataset.", "Two dataset outcomes should be reported separately rather than hidden in one mean."],
+      "success_criteria": ["Use both DTD and Pet with verified official-derived splits and fixed 25% subsets.", "Compare LoRA and linear probing with identical backbone, preprocessing, equal LR-selection budgets and three seeds.", "Report per-dataset accuracy/macro F1 and improvement uncertainty; two datasets do not establish universal cross-domain generalization."],
+      "subproblems": ["Why are texture and object datasets complementary for this comparison?", "What are the trainable sets for LoRA and linear probing?", "What conclusion is justified if a gain appears on only one dataset?"],
+      "search_queries": [{"source": "arxiv", "query": "vision transformer low rank adaptation linear probing DTD Pets"}, {"source": "cvf", "query": "parameter efficient transfer visual recognition"}]
+    },
+    {
+      "idea_id": "vit_vpt_vs_adapter",
+      "title": "Visual prompts versus residual adapters under a fixed label budget",
+      "domain": "ai_ml",
+      "difficulty": "beginner_to_intermediate",
+      "description": "在相同低标签与调参预算下，比较 shallow VPT 和 bottleneck adapter；不要求二者参数量恰好相等，而是同时报告其成本。",
+      "research_question": "On 10%-label DTD and Pet, which trade-offs arise between shallow VPT with 10 prompts and post-MLP adapters of width 64?",
+      "atomic_claims": ["Prompt and adapter tuning may offer different low-data accuracy-cost profiles.", "Equal label and tuning budgets are necessary even when trainable parameter counts differ."],
+      "success_criteria": ["Compare VPT-shallow with 10 prompts, post-MLP residual adapters with width 64, and linear probing.", "Fix backbone and splits, train the classification head in each method, and allocate equal validation LR trials.", "Report accuracy, macro F1, trainable parameters and measured time/memory over three seeds; avoid declaring one universal winner."],
+      "subproblems": ["Which papers distinguish input prompt tuning from block adapters?", "How should trainable sets and insertion points be specified?", "How can comparison fairness be stated without pretending parameter counts are identical?"],
+      "search_queries": [{"source": "arxiv", "query": "visual prompt tuning adapter image classification comparison"}, {"source": "cvf", "query": "visual prompt tuning AdaptFormer"}]
+    },
+    {
+      "idea_id": "vit_calibration_comparison",
+      "title": "Calibration of LoRA and full fine-tuning",
+      "domain": "ai_ml",
+      "difficulty": "intermediate",
+      "description": "将置信度校准作为主要评价问题，比较 LoRA 与 full fine-tuning 在低标签数据上的 ECE 和 NLL，同时保留准确率用于解释差异。",
+      "research_question": "On 25%-label DTD and Pet, how do rank-8 LoRA and full fine-tuning differ in ECE and negative log-likelihood when trained and selected under the same protocol?",
+      "atomic_claims": ["Similar classification accuracy does not imply similar calibration.", "Calibration behavior of LoRA versus full fine-tuning must be measured rather than inferred from parameter count."],
+      "success_criteria": ["Prespecify ECE with 15 equal-width bins and stable multiclass NLL from logits; retain logits/labels for independent recomputation.", "Compare LoRA and full fine-tuning without adding a post-hoc calibrator; select checkpoints by the same validation criterion.", "Report accuracy, macro F1, ECE, NLL and reliability summaries per dataset over three seeds; no test-time hyperparameter fitting."],
+      "subproblems": ["What calibration evidence is present or missing in the retrieved papers?", "How should ECE binning, NLL and checkpoint selection be fixed?", "What conclusions are justified when calibration and accuracy move in opposite directions?"],
+      "search_queries": [{"source": "arxiv", "query": "parameter efficient fine tuning vision transformer calibration uncertainty"}, {"source": "openalex", "query": "LoRA image classification expected calibration error"}]
+    },
+    {
+      "idea_id": "vit_rank_selection_policy",
+      "title": "Dataset-specific versus shared LoRA rank selection",
+      "domain": "ai_ml",
+      "difficulty": "intermediate",
+      "description": "比较每个数据集单独选择 rank 与在两个数据集上使用同一个 rank 的策略；共享 rank 也只能依据验证集选择，不利用测试结果。",
+      "research_question": "At 25% labels on DTD and Pet, is selecting rank from 2, 8 and 16 separately per dataset worthwhile compared with selecting one shared rank using validation results only?",
+      "atomic_claims": ["Dataset-specific rank selection may improve accuracy at a cost in deployment/configuration complexity.", "Selection-policy comparisons can be biased unless both reuse the same candidate training runs and exclude test results."],
+      "success_criteria": ["Train the same rank 2/8/16 candidate pool per dataset under equal tuning budgets and three seeds.", "Define dataset-specific selection from each validation set and shared selection by mean validation accuracy across both datasets, with smaller-rank tie breaking.", "Fix the policy before final test evaluation; report chosen ranks, accuracy, parameter costs and whether any gain warrants separate configurations."],
+      "subproblems": ["What evidence motivates rank sensitivity without presuming per-dataset selection wins?", "How can shared and local selection use the same candidate runs and fair budgets?", "How should the shared validation objective and ties be defined without test leakage?"],
+      "search_queries": [{"source": "arxiv", "query": "LoRA rank selection vision transformer adaptation"}, {"source": "openalex", "query": "low rank adaptation rank hyperparameter transfer learning"}]
+    }
+  ]
+}

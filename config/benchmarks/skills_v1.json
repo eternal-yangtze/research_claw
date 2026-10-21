@@ -1,0 +1,19 @@
+{
+  "version": "skills-v1-development",
+  "reference_type": "developer_routing_expectations_not_scientific_gold",
+  "cases": [
+    {"id":"S01","task":"把我已有的本地PDF论文导入知识库，保留页码和解析质量信息。","expected":["document-ingest"]},
+    {"id":"S02","task":"在现有知识库查一下LoRA的低秩机制，给出原文引用，不要联网下载。","expected":["evidence-retrieve"]},
+    {"id":"S03","task":"一个新idea：比较ViT少样本分类中LoRA与视觉提示，帮我找并下载相关论文。","expected":["literature-acquire"]},
+    {"id":"S04","task":"已有论文库和验证过的数据清单，请为ViT的LoRA rank=2/8/16比较制定实验方案，评审后冻结规格，停在coding之前。","expected":["study-plan"]},
+    {"id":"S05","task":"先把本地Markdown论文资料入库，再从库里检索adapter的相关证据回答我。","expected":["document-ingest","evidence-retrieve"]},
+    {"id":"S06","task":"为已有研究计划编写PyTorch训练代码并启动训练。","expected":[]},
+    {"id":"S07","task":"明天上海会不会下雨？","expected":[]},
+    {"id":"S08","task":"只解释现有论文中的实验设计和LoRA权重更新机制，需要可定位引文，不要求给我设计新实验。","expected":["evidence-retrieve"]},
+    {"id":"S09","task":"Use the verified datasets and existing ViT corpus to propose a controlled comparison of LoRA dropout, metrics and a validation-only selection rule. No new downloads or coding.","expected":["study-plan"]},
+    {"id":"S10","task":"We have no papers yet for a new idea about graph-aware time-series anomaly detection. Search and acquire literature.","expected":["literature-acquire"]},
+    {"id":"S11","task":"Import my existing .txt literature notes into the persistent research corpus. Do not search online.","expected":["document-ingest"]},
+    {"id":"S12","task":"先为一个新的ViT参数高效微调idea获取论文；论文和既有已验证的数据齐备后，制定coding之前的研究方案。","expected":["literature-acquire","study-plan"]}
+  ],
+  "limitations":["Small developer-authored routing set, not held-out generalization or scientific accuracy labels","Execution tests separately use real artifacts and a real provider"]
+}

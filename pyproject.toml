@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "researchops-mvp"
+version = "0.2.0"
+description = "Auditable research agent for idea understanding and literature acquisition"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = ["certifi>=2024.2.2", "PyYAML>=6.0"]
+
+[project.optional-dependencies]
+pdf = ["PyMuPDF>=1.24"]
+docling = ["docling>=2.70"]
+retrieval = ["sentence-transformers>=3.0", "torch>=2.2"]
+datasets = ["torch>=2.2", "torchvision>=0.17", "Pillow>=10", "numpy>=1.26", "scipy>=1.11", "pyarrow>=17,<25"]
+dev = ["pytest>=8"]
+coding = ["timm==1.0.27", "pytest>=8"]
+
+[project.scripts]
+researchops = "researchops.application.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+researchops = ["coding/templates/vit_peft/*", "coding/templates/vit_peft/tests/*", "vendor/taleclaw/LICENSE"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
