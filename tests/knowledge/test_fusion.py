@@ -40,6 +40,7 @@ def test_expansion_memory_rejects_changed_text_and_future_papers(monkeypatch):
             return {"paper_id": pid, "text": "corrected" if pid == "stale" else hit(pid).text}
     class CPU:
         embedding = reranker = None
+        vector_backend = None
         def __init__(self, *args, **kwargs):
             pass
         def search(self, *args, **kwargs):

@@ -55,4 +55,4 @@ def test_study_resume_accepts_canonical_path_after_directory_relocation(tmp_path
     monkeypatch.setattr(study, "ResearchStore", stop)
     import pytest
     with pytest.raises(PinPassed):
-        study.plan_study("test", source=moved_source, output=output, token_cap=1000)
+        study.plan_study("test", source=moved_source, output=output, token_cap=1000, orchestration="native")

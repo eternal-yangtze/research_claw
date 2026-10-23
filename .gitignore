@@ -8,17 +8,24 @@
 *.key
 credentials*.json
 
-# 本地开发记录已合并为 DEVELOPMENT.md；同名目录、大小写变体及副本继续排除
+# 开发记录保存在内部目录；同名目录、大小写变体及副本继续排除
 *[Dd][Ee][Vv][Ee][Ll][Oo][Pp][Mm][Ee][Nn][Tt]*
+
+# 私有开发资料：阶段过程、完整诊断、历史文档副本与本机环境记录
+/docs/private/
+/TODO0.3.md
+/docs/V03_*.md
+/installation/install_*.md
+/installation/environment_v03.json
 
 # 合并前的私有说明与历史 README 副本继续排除
 /[Rr][Ee][Aa][Dd][Mm][Ee]_[Pp][Rr][Ii][Vv][Aa][Tt][Ee]*
 /readme_orgin.md
 /readme_origin.md
 
-# 私有工程摘要不上传；科研最终指标与冻结评测协议继续保留
-/evaluation/results/cleanup_verification.json
-/evaluation/results/historical_metric_catalog.json
+# 原始评测记录和协议归档到内部目录；兼容输出路径也不公开
+/evaluation/results/
+/evaluation/protocols/
 /.evals/
 /logs/
 
@@ -74,6 +81,7 @@ visible_dialogue.json
 
 # Python 虚拟环境、构建产物与测试缓存
 .venv/
+.venv-*/
 venv/
 __pycache__/
 *.py[cod]
@@ -148,5 +156,7 @@ Desktop.ini
 !/docs/PERFORMANCE.md
 
 # 正式源码、测试、Skills、配置模板、Dockerfile / Compose 文件，
-# 以及科研最终指标 evaluation/results、冻结评测协议 evaluation/protocols 继续允许提交。
+# 作为公开产品实现保留；原始实验资料集中在 internal_experiments。
 # 不使用笼统的 *.json / *.pdf / *.md / *.png / *.svg 忽略规则。
+# Internal research records, execution artifacts and development history.
+/internal_experiments/

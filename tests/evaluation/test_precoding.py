@@ -191,7 +191,7 @@ def test_public_natural_language_entry_does_not_need_benchmark_files(tmp_path, m
     monkeypatch.setattr(study, "HybridRetriever", EmptyRetriever)
     model = BoundaryModel()
     result = study.plan_study({"description": "Time series detection"}, source=source,
-                              output=tmp_path / "output", model=model, retrieval_strategy="legacy")
+                              output=tmp_path / "output", model=model, retrieval_strategy="legacy", orchestration="native")
     assert result["status"] == "blocked_before_coding"
     assert result["proposal_status"] == "needs_adapter"
     assert result["charged_tokens_cumulative"] == 400
@@ -202,7 +202,7 @@ def test_public_natural_language_entry_does_not_need_benchmark_files(tmp_path, m
     ResearchStore(other_source / "researchops.db")
     with pytest.raises(ValueError, match="different source corpus"):
         study.plan_study({"description": "Another task"}, source=other_source,
-                         output=tmp_path / "output", model=model, retrieval_strategy="legacy")
+                         output=tmp_path / "output", model=model, retrieval_strategy="legacy", orchestration="native")
     assert len(model.messages) == 4
 
 

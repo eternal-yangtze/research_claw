@@ -276,7 +276,11 @@ def main():
     output.mkdir(parents=True, exist_ok=True)
     sys.path.insert(0, str(Path(args.project).resolve()))
     try:
-        result = run_verification(json.loads(Path(args.spec).read_text(encoding="utf-8")), output, args.group)
+        spec = json.loads(Path(args.spec).read_text(encoding="utf-8"))
+        verifier = run_verification
+        if spec.get("schema_version") == "researchops-experiment-contract-v2":
+            from researchops.coding.verifier_v2 import run_verification as verifier
+        result = verifier(spec, output, args.group)
     except Exception:
         result = {"passed": False, "checks": [{"name": "import_or_setup", "passed": False,
                   "error": traceback.format_exc()[-6000:]}]}

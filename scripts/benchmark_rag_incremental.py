@@ -101,7 +101,7 @@ class Benchmark:
             write_json(snapshot, {"pins": pins, "initial_paper_ids": ids,
                                   "initial_hashes": [raw.get_paper(p)["content_hash"] for p in ids],
                                   "source": str(self.source), "created_at": time.time()})
-            for path in scientific_files + [self.suite_path, project / "evaluation/protocols/RAG_INCREMENTAL_PROTOCOL.md"]:
+            for path in scientific_files + [self.suite_path, project / "internal_experiments/evaluation/protocols/RAG_INCREMENTAL_PROTOCOL.md"]:
                 dest = self.root / "source_snapshot" / path.relative_to(project)
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(path, dest)

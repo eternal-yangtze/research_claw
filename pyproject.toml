@@ -19,6 +19,26 @@ retrieval = ["sentence-transformers>=3.0", "torch>=2.2"]
 datasets = ["torch>=2.2", "torchvision>=0.17", "Pillow>=10", "numpy>=1.26", "scipy>=1.11", "pyarrow>=17,<25"]
 dev = ["pytest>=8"]
 coding = ["timm==1.0.27", "pytest>=8"]
+agent = [
+    "langgraph==1.2.16",
+    "langgraph-checkpoint-sqlite==3.1.2",
+    "qdrant-client==1.20.0",
+    "mcp==2.3.0",
+]
+# Compatibility alias for existing local environments and reproduction scripts.
+agent-v03 = [
+    "langgraph==1.2.16",
+    "langgraph-checkpoint-sqlite==3.1.2",
+    "qdrant-client==1.20.0",
+    "mcp==2.3.0",
+]
+ragas-eval = [
+    "ragas==0.4.3",
+    "datasets==5.1.0",
+    "langchain-community==0.3.31",
+    "langchain-openai==1.7.2",
+    "sentence-transformers==6.2.0",
+]
 
 [project.scripts]
 researchops = "researchops.application.cli:main"

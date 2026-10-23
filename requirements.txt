@@ -1,0 +1,11 @@
+# Install from the project root: python -m pip install -r requirements.txt
+# Application capabilities are declared in pyproject.toml; evaluation pins below.
+# Includes CLI, Web, PDF, neural RAG, dataset adapters, Coding and Agent integrations.
+-e .[web,pdf,retrieval,datasets,coding,agent]
+
+# Local retrieval version used for the application measurements.
+sentence-transformers==6.2.0
+
+# Optional document OCR/layout support: pip install -e .[docling]
+# Includes the compatible RAGAS / LangChain evaluation stack.
+-r requirements-eval.txt

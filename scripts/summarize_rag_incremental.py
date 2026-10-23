@@ -47,7 +47,7 @@ def main():
                              "Better retrieval and traceability do not establish better scientific study designs.",
                              "Incremental index maintenance acceleration does not mean faster neural query latency.",
                              "No coding, training outcomes, formula cross-recognition or skills packaging evaluated."]}
-    write_json(Path("evaluation/results/rag_incremental_metrics.json"), value)
+    write_json(Path("internal_experiments/evaluation/results/rag_incremental_metrics.json"), value)
     print(json.dumps({"cost": value["cost"], "speedup": value["incremental_index_speedup"],
                       "shared_controls": value["shared_no_rag_controls"]}, indent=2))
 

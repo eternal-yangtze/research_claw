@@ -59,7 +59,7 @@ class CPUBenchmark:
         files = [Path(__file__), Path("src/researchops/knowledge/evidence_retrieval.py"),
                  Path("src/researchops/knowledge/query_planning.py"), Path("src/researchops/experiments/evidence_design.py"),
                  Path("src/researchops/knowledge/retrieval.py"), Path("src/researchops/evaluation/references.py"),
-                 Path("evaluation/protocols/RAG_CPU_V3_PROTOCOL.md")]
+                 Path("internal_experiments/evaluation/protocols/RAG_CPU_V3_PROTOCOL.md")]
         pins = {"files": {str(p): file_hash(p) for p in files}, "model": self.calls.model.model,
                 "qrels_sha256": self.reference_info["sha256"], "new_paper_order": self.new,
                 "corpus_hash": canonical_hash([(r["chunk_id"], r["text"], r["source_hash"], r["paper_id"]) for r in self.store.all_chunks()])}

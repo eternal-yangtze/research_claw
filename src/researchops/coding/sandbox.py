@@ -25,9 +25,10 @@ def project_execution_spec(spec, dataset_root: Path):
 
 
 class CodingSandbox:
-    def __init__(self, workspace, project, run_dir, *, timeout=180, image=IMAGE):
+    def __init__(self, workspace, project, run_dir, *, timeout=180, image=IMAGE, dataset_root=None):
         self.workspace, self.project, self.run_dir = map(lambda p: Path(p).resolve(), (workspace, project, run_dir))
         self.timeout, self.image = timeout, image
+        self.dataset_root = Path(dataset_root).resolve() if dataset_root else (self.workspace / "datasets").resolve()
 
     def verify(self, round_number, *, group="all"):
         if group not in {"all", "models", "metrics", "training", "dispatch", "tests"}:
@@ -52,7 +53,7 @@ class CodingSandbox:
             "--cpus", "2", "--memory", "3g", "--user", "65534:65534",
             "--tmpfs", "/tmp:rw,noexec,nosuid,size=256m", "--shm-size", "128m",
             "--mount", f"type=bind,source={self.project},target=/work,readonly",
-            "--mount", f"type=bind,source={(self.workspace / 'datasets').resolve()},target=/data,readonly",
+            "--mount", f"type=bind,source={self.dataset_root},target=/data,readonly",
             "--mount", f"type=bind,source={harness},target=/harness,readonly",
             "--mount", f"type=bind,source={inputs},target=/inputs,readonly",
             "--mount", f"type=bind,source={output},target=/results",
@@ -87,7 +88,7 @@ class CodingSandbox:
 
 
 def stage_inputs(workspace, run_dir, plan):
-    root = Path(workspace).resolve() / "datasets"
+    root = Path(plan.get("dataset_root", Path(workspace).resolve() / "datasets"))
     for artifact in plan.get("source_artifacts", []):
         if file_hash(artifact["path"]) != artifact["sha256"]:
             raise ValueError("Coding plan evidence artifact changed")

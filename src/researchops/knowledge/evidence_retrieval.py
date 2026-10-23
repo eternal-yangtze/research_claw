@@ -31,10 +31,14 @@ def checkpoint_key(backend) -> str:
 
 
 class EvidenceRetriever:
-    def __init__(self, store, *, embedding=None, reranker=None):
+    def __init__(self, store, *, embedding=None, reranker=None, vector_backend=None):
         self.store = store
-        self.base = HybridRetriever(store, embedding=embedding, reranker=reranker)
+        self.base = HybridRetriever(
+            store, embedding=embedding, reranker=reranker,
+            vector_backend=vector_backend,
+        )
         self.embedding, self.reranker = self.base.embedding, self.base.reranker
+        self.vector_backend = self.base.vector_backend
         self.embedding_key = checkpoint_key(self.embedding)
         self.reranker_key = checkpoint_key(self.reranker)
         self.signature = None
@@ -69,6 +73,7 @@ class EvidenceRetriever:
         self.rows, self.keys = rows, dict(zip((r["chunk_id"] for r in rows), keys))
         self.by_id = {r["chunk_id"]: i for i, r in enumerate(rows)}
         self.matrix = np.asarray([vectors[r["chunk_id"]] for r in rows], dtype=np.float32)
+        self.vectors = {chunk_id: tuple(vector) for chunk_id, vector in vectors.items()}
         self.postings = defaultdict(list)
         self.lengths = []
         self.title_tokens = []
@@ -92,6 +97,8 @@ class EvidenceRetriever:
             raise ValueError("candidate_limit must be between 1 and 200")
         refresh = self._refresh()
         if not self.rows or limit <= 0:
+            if not self.rows and self.vector_backend.name == "qdrant":
+                self.vector_backend.sync([], {})
             self.last_diagnostics = {"refresh": refresh, "returned": 0}
             return []
         query_list = list(dict.fromkeys([query.strip()] + [q.strip() for q in (queries or []) if q.strip()]))[:4]
@@ -103,7 +110,6 @@ class EvidenceRetriever:
         count = len(allowed)
         average = sum(self.lengths[i] for i in allowed) / count
         dense_vectors = np.asarray(self.embedding.encode(query_list), dtype=np.float32)
-        dense_scores = dense_vectors @ self.matrix.T
         rrf, best_sparse, best_dense = defaultdict(float), defaultdict(float), defaultdict(float)
         def rank(scores):
             return sorted(scores, key=lambda i: (-scores[i], self.rows[i]["chunk_id"]))[:candidate_limit]
@@ -114,7 +120,14 @@ class EvidenceRetriever:
                 idf = math.log(1 + (count - len(posting) + 0.5) / (len(posting) + 0.5))
                 for i, frequency in posting:
                     sparse[i] += idf * frequency * 2.5 / (frequency + 1.5 * (0.25 + 0.75 * self.lengths[i] / max(1, average)))
-            dense = {i: float(dense_scores[q_index, i]) for i in allowed}
+            dense_by_id = self.base.dense_scores(
+                dense_vectors[q_index], rows=self.rows, vectors=self.vectors,
+                limit=candidate_limit, paper_ids=paper_ids,
+            )
+            dense = {
+                self.by_id[chunk_id]: score for chunk_id, score in dense_by_id.items()
+                if chunk_id in self.by_id and self.by_id[chunk_id] in allowed_set
+            }
             sparse_rank, dense_rank = rank(sparse), rank(dense)
             for order in (sparse_rank, dense_rank):
                 for position, i in enumerate(order, 1):
@@ -168,7 +181,12 @@ class EvidenceRetriever:
                                  "refresh": refresh, "candidate_passages": len(candidates), "candidate_papers": len(grouped),
                                  "reranked_pairs": len(missing), "cached_pairs": len(candidates) - len(missing),
                                  "returned": len(selected), "seconds": time.perf_counter() - started,
-                                 "embedding_checkpoint": self.embedding_key, "reranker_checkpoint": self.reranker_key}
+                                 "embedding_checkpoint": self.embedding_key, "reranker_checkpoint": self.reranker_key,
+                                 "vector_backend": self.vector_backend.name,
+                                 "vector_backend_status": (
+                                     self.vector_backend.last_status.__dict__.copy()
+                                     if self.vector_backend.last_status is not None else None
+                                 )}
         return [SearchHit(chunk_id=(r := self.rows[i])["chunk_id"], paper_id=r["paper_id"],
                           paper_title=r["paper_title"], section=r["section"], text=r["text"],
                           score=score[i], sparse_score=best_sparse[i], dense_score=best_dense[i],

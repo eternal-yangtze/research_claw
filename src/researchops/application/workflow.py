@@ -207,12 +207,13 @@ class ResearchOpsApp:
             name="implement_experiment",
             description="Generate experiment code from a prepared frozen Idea; execute read-only-data Docker smoke verification and repair within budget. Set from_scratch=true to disable templates and build a new project through module tasks.",
             input_schema=_schema({"idea_id": {"type": "string"}, "resume": {"type": "boolean"},
-                                  "from_scratch": {"type": "boolean"}}, required=("idea_id",)),
-            handler=lambda idea_id, resume=False, from_scratch=False: self.run_coding(
-                idea_id, resume=resume, from_scratch=from_scratch, model=self._active_model),
+                                  "from_scratch": {"type": "boolean"}, "study_result": {"type": "string"},
+                                  "token_cap": {"type": "integer"}}, required=("idea_id",)),
+            handler=self._implement_experiment_tool,
             risk=ToolRisk.NORMAL, read_only=False, side_effect=True, idempotent=True,
             timeout_seconds=3600, max_output_chars=30000,
             allowed_agents=frozenset({RESEARCH_LEAD.name}),
+            contextual=True,
         ))
         registry.register(ToolSpec(
             name="retrieve_evidence", description="Retrieve admissible, source-traceable research evidence with formula policy and an artifact.",
@@ -266,6 +267,9 @@ class ResearchOpsApp:
         from researchops.core.artifacts import canonical_hash, file_hash, write_json
         from researchops.experiments.planning import read_verified_datasets
         from researchops.experiments.study_workflow import WORKFLOW_ROLE_CONTEXT
+        from researchops.experiments.study_agents import VERSION as STUDY_ROLE_VERSION
+        from researchops.orchestration.study_graph import VERSION as STUDY_GRAPH_VERSION
+        import os
         if not 1 <= token_cap <= 1000000:
             raise ValueError("Study component token_cap must be between 1 and 1000000; the outer run cap also applies")
         if not any(isinstance(idea.get(field), str) and idea[field].strip()
@@ -299,7 +303,9 @@ class ResearchOpsApp:
                        "source_database": str(source_db), "database_sha256": digest})
         dataset_digest = canonical_hash(read_verified_datasets(datasets))
         key = canonical_hash([idea, str(source), digest, str(datasets), dataset_digest,
-                              retrieval_strategy, token_cap, WORKFLOW_ROLE_CONTEXT])[:24]
+                              retrieval_strategy, token_cap, WORKFLOW_ROLE_CONTEXT,
+                              os.getenv("RESEARCHOPS_STUDY_ORCHESTRATOR", "langgraph"),
+                              STUDY_ROLE_VERSION, STUDY_GRAPH_VERSION])[:24]
         return plan_study(idea, source=frozen_source, output=self.workspace / "skill_studies" / key,
                           token_cap=token_cap, model=self._active_model, retrieval_strategy=retrieval_strategy,
                           dataset_source=datasets)
@@ -502,16 +508,66 @@ class ResearchOpsApp:
             idea_entry, workers=workers, download=download, dataset_source=dataset_source,
         )
 
-    def create_coding_plan(self, idea_id: str, *, model: ModelPort | None = None, from_scratch: bool = False) -> dict:
-        from researchops.coding.plan import build_coding_plan
-        return build_coding_plan(self.workspace, self.store, model or OpenAICompatibleModel(), idea_id, from_scratch=from_scratch)
+    def _implement_experiment_tool(self, idea_id, resume=False, from_scratch=False, study_result=None,
+                                    token_cap=600000, _context=None):
+        if study_result:
+            study_result = str(self._allowed_path(study_result))
+        return self.run_coding(idea_id, resume=resume, from_scratch=from_scratch,
+            study_result=study_result, token_cap=token_cap, model=self._active_model,
+            cancellation=_context.cancellation if _context else None,
+            parent_run_id=_context.run_id if _context else None,
+            parent_session_id=_context.session.session_id if _context else None)
 
-    def run_coding(self, idea_id: str, *, resume: bool = False, model: ModelPort | None = None, from_scratch: bool = False, plan_path: str | None = None) -> dict:
+    def create_coding_plan(self, idea_id: str, *, model: ModelPort | None = None, from_scratch: bool = False,
+                           study_result: str | None = None, token_cap=600000) -> dict:
+        if study_result:
+            from researchops.coding.study_adapter import build_study_coding_plan
+            return build_study_coding_plan(self.workspace, study_result, token_cap=token_cap)
+        from researchops.coding.plan import build_coding_plan
+        active = model or self._active_model or OpenAICompatibleModel(max_attempts=1)
+        from researchops.harness.budget import BudgetedModel, ScopedBudgetedModel
+        if isinstance(active, ScopedBudgetedModel):
+            active = active.parent
+        if not isinstance(active, BudgetedModel):
+            if not 120000 <= token_cap <= 600000:
+                raise ValueError("Coding root cap must be between 120000 and 600000")
+            from researchops.core.artifacts import canonical_hash, file_hash
+            prep = self.workspace / "artifacts" / "experiments" / f"preparation_{idea_id}.json"
+            key = canonical_hash([idea_id, file_hash(prep), getattr(active, "model", type(active).__name__)])[:24]
+            budget_root = self.workspace / "budgets" / "coding_entry" / key
+            active = BudgetedModel(active, budget_root, token_cap, max_model_turns=128,
+                                   resume=(budget_root / "ledger.json").exists())
+        plan = build_coding_plan(self.workspace, self.store, active, idea_id, from_scratch=from_scratch)
+        plan["entry_budget"] = {"path": str(active.root), "token_cap": active.state["token_cap"],
+                                "max_model_turns": active.state["max_model_turns"]}
+        from researchops.core.artifacts import write_json, canonical_hash
+        suffix = canonical_hash(plan["entry_budget"])[:12]
+        target = Path(plan["plan_path"]).with_name(Path(plan["plan_path"]).stem + "_entry_" + suffix + ".json")
+        plan["plan_id"] += "_entry_" + suffix
+        plan["plan_path"], plan["cache_hit"] = str(target), target.exists()
+        payload = {k: v for k, v in plan.items() if k not in {"cache_hit", "plan_path"}}
+        if target.exists() and json.loads(target.read_text(encoding="utf-8")) != payload:
+            raise ValueError("Existing coding entry plan changed; use a new entry/workspace")
+        if not target.exists():
+            write_json(target, payload)
+        return plan
+
+    def run_coding(self, idea_id: str, *, resume: bool = False, model: ModelPort | None = None, from_scratch: bool = False, plan_path: str | None = None,
+                   study_result: str | None = None, token_cap=600000, cancellation=None,
+                   parent_run_id=None, parent_session_id=None) -> dict:
         from researchops.coding.agent import CodingApplication
-        active_model = model or OpenAICompatibleModel()
+        active_model = model or self._active_model or OpenAICompatibleModel(max_attempts=1)
         plan = (json.loads(Path(plan_path).read_text(encoding="utf-8")) if plan_path
-                else self.create_coding_plan(idea_id, model=active_model, from_scratch=from_scratch))
-        return CodingApplication(workspace=self.workspace, model=active_model, store=self.store).run(plan, resume=resume)
+                else self.create_coding_plan(idea_id, model=active_model, from_scratch=from_scratch,
+                                            study_result=study_result, token_cap=token_cap))
+        from researchops.harness.budget import BudgetedModel, ScopedBudgetedModel
+        if plan.get("entry_budget") and not isinstance(active_model, (BudgetedModel, ScopedBudgetedModel)):
+            binding = plan["entry_budget"]
+            active_model = BudgetedModel(active_model, Path(binding["path"]), binding["token_cap"],
+                max_model_turns=binding["max_model_turns"], resume=True)
+        return CodingApplication(workspace=self.workspace, model=active_model, store=self.store,
+            parent_run_id=parent_run_id or self._active_run_id,
+            parent_session_id=parent_session_id or self._active_session_id, cancellation=cancellation).run(plan, resume=resume)
 
     def reanalyze_task(
         self,
@@ -560,6 +616,8 @@ class ResearchOpsApp:
             stored_path = Path(stored["artifact_path"]) if stored and stored["artifact_path"] else None
             if (
                 stored
+                and analyzer.mode == "legacy"
+                and stored["analyzer_version"] == analyzer.version
                 and stored["status"] in {"completed", "completed_with_gaps"}
                 and stored_path is not None
                 and stored_path.is_file()

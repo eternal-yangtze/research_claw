@@ -1,0 +1,32 @@
+{
+  "schema_version": "researchops-v03-p0-regression-v1",
+  "frozen_at": "2026-10-22",
+  "purpose": "Development and regression comparison for v0.3; not untouched external generalization.",
+  "total_cases": 30,
+  "split_policy": "Keep source families grouped by stable IDs; development is used for tuning and regression is reported separately. All source tasks predate this manifest.",
+  "tracks": [
+    {
+      "name": "rag",
+      "source": "config/benchmarks/rag_incremental_v1.json",
+      "source_sha256": "27b4b6dc733b146ebebf8814154fc1f38d3764b2284f8d17cc5976cd18918646",
+      "development_ids": ["R01a", "R01b", "R02a", "R02b", "R03a", "R03b"],
+      "regression_ids": ["R04a", "R04b", "R05a", "R05b", "R06a", "R06b"]
+    },
+    {
+      "name": "skills",
+      "source": "config/benchmarks/skills_v1.json",
+      "source_sha256": "1f1f471f4a63d915d8971441451332ec9f17a095633edd8da49ae97a581219bc",
+      "development_ids": ["S01", "S02", "S03", "S04", "S05", "S06"],
+      "regression_ids": ["S07", "S08", "S09", "S10", "S11", "S12"]
+    },
+    {
+      "name": "precoding",
+      "source": "config/benchmarks/precoding_heldout_v2.json",
+      "source_sha256": "467bda3a29f84ba766dd4f4db7acca428d933b2abd38e3d7e3e2eee241738375",
+      "development_ids": ["H01", "H02", "H03"],
+      "regression_ids": ["H04", "H05", "H06"]
+    }
+  ],
+  "counts": {"development": 15, "regression": 15},
+  "leakage_policy": "References, expected routes and evaluator labels remain evaluator-only. Regression cases may have historical results and are not claimed as previously unseen."
+}

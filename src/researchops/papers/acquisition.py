@@ -279,7 +279,7 @@ class AcquisitionDAG:
                 reason = parsed.get("reason") or "No parsed full text is available."
                 return self.analyzer.mark_insufficient(task_id, paper, reason)
             try:
-                return self.analyzer.analyze(task_id, idea, paper)
+                return self.analyzer.analyze(task_id, idea, paper, run_id=run_id)
             except Exception as error:
                 return self.analyzer.failed(task_id, paper, error)
         if stage == "compress_l2":
@@ -321,7 +321,9 @@ class AcquisitionDAG:
             base["pdf_parser"] = os.getenv("RESEARCHOPS_PDF_PARSER", "auto")
         elif stage == "analyze_full_text":
             base["parse"] = state.outputs.get("parse_pdf")
-            base["analyzer_version"] = ANALYZER_VERSION
+            base["analyzer_version"] = getattr(self.analyzer, "version", ANALYZER_VERSION)
+            if hasattr(self.analyzer, "cache_fingerprint"):
+                base["analysis_snapshot"] = self.analyzer.cache_fingerprint(paper.paper_id)
         elif stage == "compress_l2":
             base["analysis"] = state.outputs.get("analyze_full_text")
             base["compressor_version"] = COMPRESSOR_VERSION

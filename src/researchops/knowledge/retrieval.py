@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from typing import Iterable, Protocol, Sequence
 
 from researchops.core.storage import ResearchStore
+from researchops.knowledge.vector_backend import DenseVectorBackend, build_vector_backend
 
 
 LATIN_WORD = re.compile(r"[a-zA-Z][a-zA-Z0-9_.-]+")
@@ -225,6 +226,7 @@ class HybridRetriever:
         *,
         embedding: EmbeddingBackend | None = None,
         reranker: RerankerBackend | None = None,
+        vector_backend: DenseVectorBackend | None = None,
         mmr_lambda: float = 0.75,
     ) -> None:
         self.store = store
@@ -237,6 +239,8 @@ class HybridRetriever:
         self.reranker = reranker or (
             LexicalReranker() if mode == "hashing" else CrossEncoderReranker()
         )
+        self.vector_backend = vector_backend or build_vector_backend(store, self.embedding)
+        self.last_diagnostics: dict = {}
         if not 0.0 <= mmr_lambda <= 1.0:
             raise ValueError("mmr_lambda must be between 0 and 1")
         self.mmr_lambda = mmr_lambda
@@ -249,10 +253,13 @@ class HybridRetriever:
         query = query.strip()
         if not query:
             raise ValueError("query must not be empty")
-        rows = self.store.all_chunks()
+        all_rows = [dict(row) for row in self.store.all_chunks()]
+        rows = all_rows
         if paper_ids is not None:
             rows = [row for row in rows if row["paper_id"] in paper_ids]
         if not rows:
+            if self.vector_backend.name == "qdrant" and not all_rows:
+                self.vector_backend.sync([], {})
             return []
 
         sparse = self._bm25(query, rows)
@@ -263,12 +270,14 @@ class HybridRetriever:
                 continue
             sparse[chunk_id] = max(sparse.get(chunk_id, 0.0), score)
 
-        vectors = self._vectors(rows) if mode != "bm25" else {}
+        # The server index always reflects the full SQLite corpus. paper_ids is
+        # a query-time server filter and must never create a partial index.
+        vectors = self._vectors(all_rows) if mode != "bm25" else {}
         query_vector = self.embedding.encode([query])[0] if mode != "bm25" else ()
-        dense = {
-            row["chunk_id"]: max(0.0, cosine(query_vector, vectors[row["chunk_id"]]))
-            for row in rows
-        } if mode != "bm25" else {}
+        dense = {chunk_id: max(0.0, score) for chunk_id, score in self.dense_scores(
+            query_vector, rows=all_rows, vectors=vectors,
+            limit=candidate_limit, paper_ids=paper_ids,
+        ).items()} if mode != "bm25" else {}
         sparse_rank = self._rank(sparse, candidate_limit)
         dense_rank = self._rank(dense, candidate_limit)
         candidate_ids = sorted(
@@ -322,7 +331,25 @@ class HybridRetriever:
                 embedding_model=f"{self.embedding.model_name}@{self.embedding.model_revision}" if mode != "bm25" else "none",
                 reranker_model=self.reranker.model_name if mode == "full" else "none",
             ))
+        backend_status = getattr(self.vector_backend, "last_status", None)
+        self.last_diagnostics = {
+            "vector_backend": self.vector_backend.name,
+            "dense_candidates": len(dense),
+            "backend_status": (
+                backend_status.__dict__.copy() if backend_status is not None else None
+            ),
+        }
         return hits
+
+    def dense_scores(self, query_vector, *, rows, vectors, limit, paper_ids=None):
+        scores = self.vector_backend.search(
+            query_vector,
+            rows=rows,
+            vectors=vectors,
+            limit=limit,
+            paper_ids=paper_ids,
+        )
+        return {chunk_id: float(score) for chunk_id, score in scores.items()}
 
     def _vectors(self, rows: list) -> dict[str, tuple[float, ...]]:
         with self._index_lock:
@@ -342,6 +369,8 @@ class HybridRetriever:
                 encoded = self.embedding.encode([
                     f"{row['section']}\n{row['text']}" for row, _ in missing
                 ])
+                if len(encoded) != len(missing):
+                    raise ValueError("Embedding adapter returned incomplete vectors")
                 records = [
                     (row["chunk_id"], source_hash, vector)
                     for (row, source_hash), vector in zip(missing, encoded)
@@ -422,10 +451,9 @@ class HybridRetriever:
 
 
 def _row_source_hash(row) -> str:
-    value = str(row["source_hash"] or row["content_hash"] or "")
-    if value:
-        return value
-    return hashlib.sha256(f"{row['section']}\n{row['text']}".encode("utf-8")).hexdigest()
+    return hashlib.sha256(json.dumps([
+        row["source_hash"], row["content_hash"], row["section"], row["text"],
+    ], ensure_ascii=False).encode("utf-8")).hexdigest()
 
 
 def _normalize(values: Iterable[float]) -> tuple[float, ...]:

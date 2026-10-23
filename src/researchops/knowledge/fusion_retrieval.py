@@ -118,10 +118,16 @@ def fuse_candidates(query, question, legacy_hits, cpu_hits, calls, *, previous_h
 
 
 class FusionRetriever:
-    def __init__(self, store, calls):
+    def __init__(self, store, calls, *, embedding=None, reranker=None, vector_backend=None):
         self.store, self.calls = store, calls
-        self.cpu = EvidenceRetriever(store)
-        self.legacy = HybridRetriever(store, embedding=self.cpu.embedding, reranker=self.cpu.reranker)
+        self.cpu = EvidenceRetriever(
+            store, embedding=embedding, reranker=reranker,
+            vector_backend=vector_backend,
+        )
+        self.legacy = HybridRetriever(
+            store, embedding=self.cpu.embedding, reranker=self.cpu.reranker,
+            vector_backend=self.cpu.vector_backend,
+        )
         self.last_diagnostics = {}
 
     def search(self, query, *, question=None, queries=None, limit=40, paper_ids=None, previous_hits=None):

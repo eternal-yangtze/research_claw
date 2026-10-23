@@ -2,28 +2,55 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
+import threading
 from pathlib import Path
 from typing import Any
 
 from researchops.core.models import Idea, Paper
 from researchops.harness.runtime import ModelPort
 from researchops.core.storage import ResearchStore
+from researchops.core.artifacts import canonical_hash, write_json
 
 
-ANALYZER_VERSION = "baseline-readiness-v2-formula-policy"
+ANALYZER_VERSION = "paper-analysis-v3-micro-contract"
 UNKNOWN = "Not established from the supplied full text."
 
 
 class PaperAnalyzer:
     """Build a citation-bound paper analysis for baseline decisions."""
 
-    def __init__(self, model: ModelPort, store: ResearchStore, workspace: Path) -> None:
+    def __init__(
+        self,
+        model: ModelPort,
+        store: ResearchStore,
+        workspace: Path,
+        *,
+        mode: str | None = None,
+        retriever=None,
+        traces=None,
+    ) -> None:
         self.model = model
         self.store = store
         self.workspace = workspace
+        self.mode = (mode or os.getenv("RESEARCHOPS_PAPER_ANALYZER_MODE", "legacy")).strip().lower()
+        if self.mode not in {"legacy", "micro"}:
+            raise ValueError("paper analyzer mode must be legacy or micro")
+        self.version = f"{ANALYZER_VERSION}:{self.mode}"
+        self.retriever = retriever
+        self.traces = traces
+        self._micro_agent = None
+        self._micro_agent_lock = threading.Lock()
 
-    def analyze(self, task_id: str, idea: Idea, paper: Paper) -> dict[str, Any]:
+    def analyze(
+        self,
+        task_id: str,
+        idea: Idea,
+        paper: Paper,
+        *,
+        run_id: str | None = None,
+    ) -> dict[str, Any]:
         from researchops.papers.validation.automatic import formula_evidence_policy
         rows = self.store.paper_chunks(paper.paper_id)
         if not rows:
@@ -91,43 +118,70 @@ class PaperAnalyzer:
             },
             "evidence_field": {"text": "string", "citations": ["chunk_id"]},
             "chunks": chunk_payload,
+            "formula_policy": policy,
         }
-        messages = [
-            {
-                "role": "system",
-                "content": (
-                    "You are a strict research-method analyst. Return one JSON object only. "
-                    "Unsupported claims must be marked unknown rather than guessed."
-                ),
-            },
-            {"role": "user", "content": json.dumps(request, ensure_ascii=False)},
-        ]
-        raw: dict[str, Any] | None = None
-        for attempt in range(2):
-            turn = self.model.complete(messages, [], 3500)
-            try:
-                raw = _parse_json_object(turn.text)
-                break
-            except json.JSONDecodeError:
-                if attempt:
-                    raise
-                messages.extend([
-                    {"role": "assistant", "content": turn.text},
-                    {
-                        "role": "user",
-                        "content": "The previous response was invalid JSON. Return the same grounded analysis as one syntactically valid JSON object only.",
-                    },
-                ])
-        assert raw is not None
         valid_ids = {row["chunk_id"] for row in chosen}
-        normalized, unsupported = _normalize_analysis(raw, valid_ids)
-        normalized, missing = _ensure_analysis_schema(normalized)
-        unsupported.extend(missing)
+        if self.mode == "micro":
+            from researchops.harness.runtime import TraceStore
+            from researchops.knowledge.retrieval import HybridRetriever
+            from researchops.papers.analysis_agent import PaperAnalysisAgent, PaperAnalysisBlocked
+
+            with self._micro_agent_lock:
+                if self._micro_agent is None:
+                    self._micro_agent = PaperAnalysisAgent(
+                        self.model, self.store, self.workspace,
+                        self.retriever or HybridRetriever(self.store),
+                        traces=self.traces or TraceStore(self.workspace / "runs"),
+                    )
+            chosen = [row for row in rows if policy[row["chunk_id"]]["eligible_for_planning"]]
+            valid_ids = {row["chunk_id"] for row in chosen}
+            try:
+                normalized, unsupported = self._micro_agent.run(
+                    task_id, idea, paper, request, chosen, run_id=run_id)
+            except PaperAnalysisBlocked as error:
+                return self._insufficient(
+                    task_id,
+                    paper,
+                    f"MicroAgent stopped: {error.result.stop_reason}",
+                    status="analysis_blocked",
+                    extra={"micro_agent": error.result.to_dict()},
+                )
+        else:
+            messages = [
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a strict research-method analyst. Return one JSON object only. "
+                        "Unsupported claims must be marked unknown rather than guessed."
+                    ),
+                },
+                {"role": "user", "content": json.dumps(request, ensure_ascii=False)},
+            ]
+            raw: dict[str, Any] | None = None
+            for attempt in range(2):
+                turn = self.model.complete(messages, [], 3500)
+                try:
+                    raw = _parse_json_object(turn.text)
+                    break
+                except json.JSONDecodeError:
+                    if attempt:
+                        raise
+                    messages.extend([
+                        {"role": "assistant", "content": turn.text},
+                        {
+                            "role": "user",
+                            "content": "The previous response was invalid JSON. Return the same grounded analysis as one syntactically valid JSON object only.",
+                        },
+                    ])
+            assert raw is not None
+            normalized, unsupported = _normalize_analysis(raw, valid_ids)
+            normalized, missing = _ensure_analysis_schema(normalized)
+            unsupported.extend(missing)
         normalized.update({
             "paper_id": paper.paper_id,
             "paper_title": paper.title,
             "task_id": task_id,
-            "analyzer_version": ANALYZER_VERSION,
+            "analyzer_version": self.version,
             "evidence_chunk_count": len(chosen),
             "source_pdf_path": rows[0]["file_path"],
             "citation_index": {
@@ -146,6 +200,26 @@ class PaperAnalyzer:
         status = "completed" if not unsupported else "completed_with_gaps"
         return self._persist(task_id, paper, status, normalized)
 
+    def cache_fingerprint(self, paper_id: str) -> str:
+        from researchops.papers.analysis_agent import PROMPT_VERSION
+        rows = self.store.paper_chunks(paper_id)
+        retriever = self.retriever
+        backend = getattr(retriever, "vector_backend", None)
+        return canonical_hash({
+            "version": self.version,
+            "prompt": PROMPT_VERSION if self.mode == "micro" else None,
+            "read_transport": os.getenv("RESEARCHOPS_PAPER_READ_TRANSPORT", "inprocess") if self.mode == "micro" else None,
+            "model": getattr(self.model, "model", type(self.model).__name__),
+            "backend": getattr(backend, "name", os.getenv("RESEARCHOPS_VECTOR_BACKEND", "local")),
+            "corpus": getattr(backend, "corpus_version", os.getenv("RESEARCHOPS_CORPUS_VERSION", "v1")),
+            "project": getattr(backend, "project_id", os.getenv("RESEARCHOPS_PROJECT_ID")),
+            "embedding": getattr(getattr(retriever, "embedding", None), "model_name",
+                                 os.getenv("RESEARCHOPS_EMBEDDING_MODEL")),
+            "revision": getattr(getattr(retriever, "embedding", None), "model_revision",
+                                os.getenv("RESEARCHOPS_EMBEDDING_REVISION")),
+            "chunks": [dict(row) for row in rows],
+        })
+
     def failed(self, task_id: str, paper: Paper, error: Exception) -> dict[str, Any]:
         return self._insufficient(task_id, paper, f"{type(error).__name__}: {error}", status="analysis_failed")
 
@@ -159,12 +233,13 @@ class PaperAnalyzer:
         reason: str,
         *,
         status: str = "insufficient_full_text",
+        extra: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         analysis = {
             "paper_id": paper.paper_id,
             "paper_title": paper.title,
             "task_id": task_id,
-            "analyzer_version": ANALYZER_VERSION,
+            "analyzer_version": self.version,
             "status": status,
             "reason": reason,
             "baseline_assessment": {
@@ -172,6 +247,8 @@ class PaperAnalyzer:
                 "rationale": {"text": UNKNOWN, "citations": []},
             },
         }
+        if extra:
+            analysis.update(extra)
         return self._persist(task_id, paper, status, analysis)
 
     def _persist(self, task_id: str, paper: Paper, status: str, analysis: dict[str, Any]) -> dict[str, Any]:
@@ -179,9 +256,9 @@ class PaperAnalyzer:
         target_dir = self.workspace / "artifacts" / "analyses" / task_id
         target_dir.mkdir(parents=True, exist_ok=True)
         target = target_dir / f"{paper.paper_id}.json"
-        target.write_text(json.dumps(analysis, ensure_ascii=False, indent=2), encoding="utf-8")
+        write_json(target, analysis)
         self.store.save_paper_analysis(
-            task_id, paper.paper_id, status, analysis, str(target), ANALYZER_VERSION
+            task_id, paper.paper_id, status, analysis, str(target), self.version
         )
         return {
             "status": status,

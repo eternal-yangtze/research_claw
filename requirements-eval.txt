@@ -1,0 +1,10 @@
+# Evaluation-only environment: python -m pip install -r requirements-eval.txt
+# Also included by requirements.txt for a complete application + evaluation install.
+-e .
+ragas==0.4.3
+datasets==5.1.0
+langchain==1.4.7
+langchain-core==1.6.13
+langchain-community==0.3.31
+langchain-openai==1.7.2
+sentence-transformers==6.2.0

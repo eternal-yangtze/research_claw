@@ -104,6 +104,7 @@ def build_parser() -> argparse.ArgumentParser:
     study.add_argument("--source", default="knowledge_base/workspace_batch_vit_v2")
     study.add_argument("--token-cap", type=int, default=250000)
     study.add_argument("--retrieval-strategy", choices=("legacy", "cpu", "fusion"), default="legacy")
+    study.add_argument("--orchestration", choices=("native", "langgraph"), help="Override RESEARCHOPS_STUDY_ORCHESTRATOR; new runs default to langgraph")
     study.add_argument("--dataset-workspace", help="Use verified dataset manifests from this independent workspace")
 
     acquire = subparsers.add_parser("datasets-acquire", help="Download and validate supported official image datasets")
@@ -117,11 +118,19 @@ def build_parser() -> argparse.ArgumentParser:
     coding_plan = subparsers.add_parser("coding-plan", help="Refresh hybrid-RAG synthesis and create the frozen coding handoff")
     coding_plan.add_argument("--idea-id", default="vit_peft_small_data")
     coding_plan.add_argument("--from-scratch", action="store_true", help="Disable reusable implementation templates")
+    coding_plan.add_argument("--study-result", help="Accepted LangGraph study result.json (v2 handoff)")
+    coding_plan.add_argument("--token-cap", type=int, default=600000, help="New v2 coding plan cap, at most 5x original")
+    coding_plan.add_argument("--stream", action="store_true", help="Receive provider SSE without hidden retries")
+    coding_plan.add_argument("--reasoning-effort", choices=("low", "medium", "high"))
     code = subparsers.add_parser("code", help="Run/resume the coding agent and external Docker verification")
     code.add_argument("--idea-id", default="vit_peft_small_data")
     code.add_argument("--resume", action="store_true")
     code.add_argument("--from-scratch", action="store_true", help="Build each module from empty code using task-level verification")
     code.add_argument("--plan", help="Use an existing immutable coding plan, including historical benchmark plans")
+    code.add_argument("--study-result", help="Accepted LangGraph study result.json (v2 handoff)")
+    code.add_argument("--token-cap", type=int, default=600000, help="Cap for new v2 plan; immutable on resume")
+    code.add_argument("--stream", action="store_true", help="Receive provider SSE without hidden retries")
+    code.add_argument("--reasoning-effort", choices=("low", "medium", "high"))
 
     reanalyze = subparsers.add_parser(
         "reanalyze",
@@ -166,6 +175,7 @@ def main(argv: list[str] | None = None) -> int:
                 idea = {"description": args.idea or ""}
             output = plan_study(idea, source=Path(args.source), output=Path(args.workspace), token_cap=args.token_cap,
                                 retrieval_strategy=args.retrieval_strategy,
+                                orchestration=args.orchestration,
                                 dataset_source=Path(args.dataset_workspace) if args.dataset_workspace else None)
         else:
             app = ResearchOpsApp(args.workspace, allowed_roots=permitted)
@@ -240,9 +250,15 @@ def _execute_command(args, app: ResearchOpsApp):
         output = app.prepare_experiment(args.idea_id, library_path=args.idea_library,
                                         workers=args.workers, download=not args.offline, dataset_source=args.dataset_source)
     elif args.command == "coding-plan":
-        output = app.create_coding_plan(args.idea_id, from_scratch=args.from_scratch)
+        from researchops.harness.runtime import OpenAICompatibleModel
+        model = OpenAICompatibleModel(max_attempts=1, stream=args.stream, reasoning_effort=args.reasoning_effort) if not args.study_result else None
+        output = app.create_coding_plan(args.idea_id, from_scratch=args.from_scratch,
+            study_result=args.study_result, token_cap=args.token_cap, model=model)
     elif args.command == "code":
-        output = app.run_coding(args.idea_id, resume=args.resume, from_scratch=args.from_scratch, plan_path=args.plan)
+        from researchops.harness.runtime import OpenAICompatibleModel
+        model = OpenAICompatibleModel(max_attempts=1, stream=args.stream, reasoning_effort=args.reasoning_effort)
+        output = app.run_coding(args.idea_id, resume=args.resume, from_scratch=args.from_scratch, plan_path=args.plan,
+            study_result=args.study_result, token_cap=args.token_cap, model=model)
     elif args.command in {"datasets-acquire", "dataset-import"}:
         from researchops.experiments.datasets import REGISTRY, DatasetManager
         manager = DatasetManager(app.workspace, source=getattr(args, "dataset_source", "auto"))

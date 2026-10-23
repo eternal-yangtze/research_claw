@@ -20,8 +20,14 @@ from researchops.vendor.taleclaw.workspace import capture_workspace_snapshot, wr
 
 
 class CodingApplication:
-    def __init__(self, *, workspace, model, store=None):
+    def __init__(self, *, workspace, model, store=None, parent_run_id=None, parent_session_id=None, cancellation=None):
         self.workspace, self.model, self.store = Path(workspace).resolve(), model, store
+        self.parent_run_id, self.parent_session_id = parent_run_id, parent_session_id
+        self.cancellation = cancellation
+
+    def _check_cancelled(self):
+        from researchops.coding.harness_adapter import check_cancelled
+        check_cancelled(self)
 
     def run(self, plan, *, resume=False):
         self.plan = {key: value for key, value in plan.items() if key != "cache_hit"}
@@ -29,7 +35,9 @@ class CodingApplication:
         self.project = self.run_dir / "project"
         self.project.mkdir(parents=True, exist_ok=True)
         with workspace_lock(self.run_dir):
-            return self._run_locked(resume)
+            from researchops.coding.harness_adapter import attach, finalize
+            binding = attach(self)
+            return finalize(self, self._run_locked(resume), binding)
 
     def _run_locked(self, resume):
         if self.plan.get("execution", {}).get("strategy") == "task_dag_v1" and not self.plan.get("template"):
@@ -105,6 +113,7 @@ class CodingApplication:
         self.started, self.previous_wall = started, previous_wall
         try:
             while self.state["turns"] < self.budget["max_model_turns"]:
+                self._check_cancelled()
                 self.state["wall_seconds"] = previous_wall + time.monotonic() - started
                 if (self.state["wall_seconds"] >= self.budget["max_wall_seconds"]
                     or self.state["total_tokens"] >= self.budget["max_total_tokens"]
@@ -127,6 +136,7 @@ class CodingApplication:
                         "tool_calls": [_tool_call_dict(call) for call in turn.tool_calls]})
                     self._checkpoint()
                     for call in turn.tool_calls:
+                        self._check_cancelled()
                         if self.state["tool_calls"] >= self.budget["max_tool_calls"]:
                             raise RuntimeError("Tool-call budget exhausted")
                         self.state["tool_calls"] += 1
@@ -186,7 +196,7 @@ class CodingApplication:
         self._checkpoint()
         write_json(self.run_dir / "report.json", report)
         write_json(self.run_dir / "task_summary.json", build_coding_task_summary(task_id=self.run_id,
-            parent_session_id="research", task_type="research_implementation", status=self.state["status"],
+            parent_session_id=self.parent_session_id or "research", task_type="research_implementation", status=self.state["status"],
             user_request=self.plan["objective"], task_reply=stop, task_log_path=str(self.run_dir)))
         return report
 
@@ -222,7 +232,11 @@ class CodingApplication:
 
     @staticmethod
     def _compact_spec(spec):
-        return {key: spec[key] for key in ("model", "methods", "training", "datasets", "preprocessing", "metrics", "hypothesis") if key in spec}
+        value = {key: spec[key] for key in ("model", "methods", "training", "datasets", "preprocessing", "metrics", "hypothesis") if key in spec}
+        if spec.get("schema_version") == "researchops-experiment-contract-v2":
+            value["datasets"] = [{k: d[k] for k in ("dataset_id", "root", "manifest_path", "manifest_sha256",
+                "class_count", "train_fractions", "split_counts") if k in d} for d in spec.get("datasets", [])]
+        return value
 
     def _model_messages(self):
         # Keep the complete audit/checkpoint untouched; omit already-saved source
@@ -313,7 +327,7 @@ class CodingApplication:
         paths = {"coding.py": root / "agent.py", "coding_verifier.py": root / "verifier.py",
                  "coding_sandbox.py": root / "sandbox.py", "experiment_support.py": root.parent / "experiments" / "support.py",
                  "core/artifacts.py": root.parent / "core" / "artifacts.py"}
-        for name in ("execution.py", "tasks.py", "budget.py"):
+        for name in ("execution.py", "tasks.py", "budget.py", "verifier_v2.py", "harness_adapter.py"):
             paths[name] = root / name
         return canonical_hash({name: file_hash(path) for name, path in paths.items()})
 

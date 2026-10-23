@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -99,6 +100,16 @@ class ToolContext:
     session: Session
     agent: AgentSpec
     executor: Any
+    deadline_at: float | None = None
+    cancellation: Any = None
+
+    def cancelled(self) -> bool:
+        return bool(self.cancellation is not None and self.cancellation.is_set())
+
+    def remaining_seconds(self) -> float | None:
+        if self.deadline_at is None:
+            return None
+        return max(0.0, self.deadline_at - time.monotonic())
 
 
 class ToolRegistry:
@@ -143,6 +154,7 @@ class TraceStore:
     def __init__(self, root: str | Path) -> None:
         self.root = Path(root).resolve()
         self.root.mkdir(parents=True, exist_ok=True)
+        self._lock = threading.Lock()
 
     def emit(self, run_id: str, event: str, session_id: str, payload: dict | None = None) -> None:
         run_dir = self.root / run_id
@@ -154,8 +166,9 @@ class TraceStore:
             "event": event,
             "payload": payload or {},
         }
-        with (run_dir / "trace.jsonl").open("a", encoding="utf-8") as handle:
-            handle.write(json.dumps(record, ensure_ascii=False) + "\n")
+        with self._lock:
+            with (run_dir / "trace.jsonl").open("a", encoding="utf-8") as handle:
+                handle.write(json.dumps(record, ensure_ascii=False) + "\n")
 
 
 class ToolExecutor:
@@ -171,6 +184,9 @@ class ToolExecutor:
         agent: AgentSpec,
         call: ToolCall,
         confirmed: bool = False,
+        *,
+        deadline_at: float | None = None,
+        cancellation: Any = None,
     ) -> ToolResult:
         started = time.perf_counter()
         self.traces.emit(run_id, "tool.call.started", session.session_id, {"call_id": call.call_id, "tool": call.name, "arguments": _safe_arguments(call.arguments)})
@@ -182,8 +198,16 @@ class ToolExecutor:
         spec = self.registry.get(call.name)
         assert spec is not None
         try:
+            if cancellation is not None and cancellation.is_set():
+                raise RuntimeError("tool execution cancelled before dispatch")
+            effective_deadline = time.monotonic() + spec.timeout_seconds
+            if deadline_at is not None:
+                effective_deadline = min(effective_deadline, deadline_at)
+            if effective_deadline <= time.monotonic():
+                raise TimeoutError("tool deadline expired before dispatch")
             _validate_arguments(spec.input_schema, call.arguments)
-            output = (spec.handler(**call.arguments, _context=ToolContext(run_id, session, agent, self))
+            output = (spec.handler(**call.arguments, _context=ToolContext(
+                run_id, session, agent, self, effective_deadline, cancellation))
                       if spec.contextual else spec.handler(**call.arguments))
             serialized = json.dumps(output, ensure_ascii=False, default=str)
             truncated = len(serialized) > spec.max_output_chars
@@ -281,17 +305,28 @@ class OpenAICompatibleModel:
         model: str | None = None,
         timeout: float | None = None,
         max_attempts: int = 3,
+        stream: bool = False,
+        reasoning_effort: str | None = None,
+        temperature: float | None = None,
     ) -> None:
         self.base_url = (base_url or os.getenv("RESEARCHOPS_MODEL_BASE_URL") or "").rstrip("/")
         self.api_key = api_key or os.getenv("RESEARCHOPS_MODEL_API_KEY") or ""
         self.model = model or os.getenv("RESEARCHOPS_MODEL_NAME") or ""
         self.timeout = float(timeout or os.getenv("RESEARCHOPS_MODEL_TIMEOUT_SECONDS") or 180.0)
         self.max_attempts = max(1, int(max_attempts))
+        self.stream, self.reasoning_effort = stream, reasoning_effort
+        self.temperature = temperature
         if not self.base_url or not self.api_key or not self.model:
             raise ValueError("Set RESEARCHOPS_MODEL_BASE_URL, RESEARCHOPS_MODEL_API_KEY, and RESEARCHOPS_MODEL_NAME")
 
     def complete(self, messages: list[dict], tools: list[dict], max_tokens: int) -> ModelTurn:
         payload = {"model": self.model, "messages": messages, "max_tokens": max_tokens}
+        if self.temperature is not None:
+            payload["temperature"] = self.temperature
+        if self.reasoning_effort:
+            payload["reasoning_effort"] = self.reasoning_effort
+        if self.stream:
+            payload.update(stream=True, stream_options={"include_usage": True})
         if tools:
             payload["tools"] = tools
         request = urllib.request.Request(
@@ -300,7 +335,7 @@ class OpenAICompatibleModel:
             headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"},
             method="POST",
         )
-        value = self._request_json(request)
+        value = self._request_stream(request) if self.stream else self._request_json(request)
         message = value["choices"][0]["message"]
         calls = tuple(
             ToolCall(
@@ -315,8 +350,54 @@ class OpenAICompatibleModel:
     def complete_bounded(self, messages, tools, max_tokens, *, timeout):
         """One paid attempt with a caller-assigned timeout; no hidden retries."""
         bounded = OpenAICompatibleModel(self.base_url, self.api_key, self.model,
-            timeout=min(self.timeout, max(0.1, timeout)), max_attempts=1)
+            timeout=min(self.timeout, max(0.1, timeout)), max_attempts=1,
+            stream=self.stream, reasoning_effort=self.reasoning_effort, temperature=self.temperature)
         return bounded.complete(messages, tools, max_tokens)
+
+    def _request_stream(self, request):
+        """One SSE dispatch; never retry a partly observed paid generation."""
+        content, calls, usage = [], {}, {}
+        deadline = time.monotonic() + self.timeout
+        done = False
+        with urllib.request.urlopen(request, timeout=self.timeout) as response:
+            stream_socket = getattr(getattr(getattr(response, "fp", None), "raw", None), "_sock", None)
+            while True:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise TimeoutError("streaming model deadline exceeded")
+                if stream_socket is not None:
+                    stream_socket.settimeout(remaining)
+                raw = response.readline()
+                if not raw:
+                    break
+                line = raw.decode("utf-8").strip()
+                if not line.startswith("data:"):
+                    continue
+                data = line[5:].strip()
+                if data == "[DONE]":
+                    done = True
+                    break
+                event = json.loads(data)
+                if event.get("error"):
+                    raise RuntimeError("model stream returned an error")
+                if event.get("usage"):
+                    usage = event["usage"]
+                for choice in event.get("choices", []):
+                    if choice.get("index", 0) != 0:
+                        continue
+                    delta = choice.get("delta") or {}
+                    if delta.get("content"):
+                        content.append(delta["content"])
+                    for item in delta.get("tool_calls") or []:
+                        row = calls.setdefault(item["index"], {"id": "", "function": {"name": "", "arguments": ""}})
+                        row["id"] += item.get("id") or ""
+                        function = item.get("function") or {}
+                        row["function"]["name"] += function.get("name") or ""
+                        row["function"]["arguments"] += function.get("arguments") or ""
+        if not done:
+            raise ConnectionError("model stream ended before [DONE]; usage remains conservatively reserved")
+        return {"choices": [{"message": {"content": "".join(content),
+                    "tool_calls": [calls[k] for k in sorted(calls)]}}], "usage": usage}
 
     def _request_json(self, request: urllib.request.Request) -> dict:
         retryable = {429, 500, 502, 503, 504, 524}

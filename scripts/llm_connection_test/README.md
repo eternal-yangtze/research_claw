@@ -1,10 +1,9 @@
-# ResearchOps LLM connection test
+# Model service connectivity
 
-Run from any directory with the project's virtual environment:
+Run from the project root with its virtual environment:
 
 ```powershell
-D:\my_coach\new_agent\researchops_mvp\.venv\Scripts\python.exe `
-  D:\my_coach\new_agent\researchops_mvp\scripts\llm_connection_test\check_llm_connection.py
+.\.venv\Scripts\python.exe scripts/llm_connection_test/check_llm_connection.py
 ```
 
 Optional arguments:

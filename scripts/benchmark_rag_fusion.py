@@ -50,7 +50,7 @@ class FusionBenchmark:
                  Path("src/researchops/knowledge/fusion_retrieval.py"), Path("src/researchops/experiments/fusion_design.py"),
                  Path("src/researchops/experiments/evidence_design.py"), Path("src/researchops/evaluation/rag.py"),
                  Path("src/researchops/evaluation/references.py"), Path("src/researchops/knowledge/retrieval.py"),
-                 Path("src/researchops/knowledge/evidence_retrieval.py"), Path("evaluation/protocols/RAG_FUSION_V1_PROTOCOL.md")]
+                 Path("src/researchops/knowledge/evidence_retrieval.py"), Path("internal_experiments/evaluation/protocols/RAG_FUSION_V1_PROTOCOL.md")]
         controls = sorted(self.source.glob("retrieval/*/*/*.json")) + sorted(self.source.glob("answers/*/*.json"))
         pins = {"code": {str(p.resolve().relative_to(project)): file_hash(p) for p in paths},
                 "controls": {str(p.relative_to(self.source)): file_hash(p) for p in controls},

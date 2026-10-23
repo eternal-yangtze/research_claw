@@ -23,7 +23,7 @@ class PlannedBenchmark(Benchmark):
         base = args.baseline.resolve()
         project = Path(__file__).resolve().parents[1]
         files = [Path(__file__), project / "src/researchops/knowledge/query_planning.py",
-                 project / "src/researchops/application/study.py", project / "evaluation/protocols/RAG_INCREMENTAL_V2_PROTOCOL.md"]
+                 project / "src/researchops/application/study.py", project / "internal_experiments/evaluation/protocols/RAG_INCREMENTAL_V2_PROTOCOL.md"]
         pins = {"files": {str(p.relative_to(project)): file_hash(p) for p in files},
                 "baseline": str(base), "baseline_qrels_sha256": file_hash(base / "qrels.json"),
                 "baseline_snapshot_sha256": file_hash(base / "snapshot.json")}
