@@ -48,10 +48,10 @@
 \sectionTitle{专业技能}{\faWrench}
 %======================================================================
 \begin{itemize}
-\item \textbf{Agent 与 LLM 应用}: Tool Call、Agent Runtime、Context Engineering、RAG、Memory、trace。
-\item \textbf{后端与工程}: Python、FastAPI、pytest、Git、Linux、Docker。
-\item \textbf{RAG 与检索}: BM25、向量召回、cross-encoder 重排、MMR、引用校验、nDCG 与 Recall 评测。
-\item \textbf{基础}: Java 与 Spring Boot 基础。
+\item \textbf{Agent 架构}: Python，Agent Runtime/Harness、MicroAgent、多 Agent、LangGraph、Tool Calling、Skills、MCP、任务规划、Memory/上下文管理、Checkpoint 恢复与 Trace 可观测性。
+\item \textbf{RAG 与 Eval}: 文档解析与分块、BM25/Embedding 多路召回、Qdrant、Cross-Encoder 重排、MMR、引用校验；LangChain、RAGAS、Recall/nDCG 评测。
+\item \textbf{后端与工程}: FastAPI、SQLite、Docker、Linux、Git、pytest；具备沙箱执行、权限边界、状态持久化及故障恢复实践。
+\item \textbf{开发基础}: Java、Spring Boot 基础；熟悉 REST API 与前后端协作。
 \end{itemize}
 
 %======================================================================
@@ -81,13 +81,13 @@
 \begin{itemize}
 \item \textbf{ResearchOps Agent Runtime（面向科研任务的 Agent 执行平台与 Coding Agent）}
 
-\textbf{项目概述}: 独立实现统一 Agent Runtime，支撑命令行与 Web 复用会话管理、模型调用、工具执行、Skill 按需加载、任务记忆和运行记录。在其上构建面向科研任务的 Coding Agent，衔接“读材料 $\rightarrow$ 检索证据 $\rightarrow$ 编译方案 $\rightarrow$ 跑验证 $\rightarrow$ 输出报告”的任务闭环。配套可扩展的语料库、idea集、离线评测矩阵及冻结评测协议。
+\textbf{项目概述}: 独立设计科研 Agent Runtime，以确定性 Harness 管理模型、工具、状态与工件，以 MicroAgent 承载局部自主推理，贯通“文献取证 $\rightarrow$ 方案规划 $\rightarrow$ 代码生成 $\rightarrow$ 沙箱验证”，并提供 CLI 与 Web 资料问答入口。
 \begin{itemize}
-\item \textbf{工具调用治理}: 面对工具调用规则容易堆进 prompt、模型可能误用工具或反复重试的问题，梳理上下文构建、模型调用、工具执行与结果写回流程，接入工具检查、工作区路径校验及步数与重复调用检测，使工具调用从“模型自觉遵守”转为运行时约束。
-\item \textbf{RAG 与证据组织}: 面对单一检索难以兼顾术语和语义、相近段落容易占满上下文的问题，组合 BM25 与向量召回，经 cross-encoder 重排和 MMR 去冗，再由 Fusion 融合候选并逐字校验引用，支持按需取证与原文回读；固定 94 篇语料上，nDCG@10 从 0.690 提升到 0.749，Recall@10 从 42.21\% 提升到 42.89\%（LLM 银标）。
-\item \textbf{上下文管理与按需加载}: 面对长任务中历史源码、工具输出和文献反复挤占上下文的问题，截断长输出并保留预览，省略历史源码正文但保留文件回读，按身份卡、筛选卡、全文档案、问题综合分层压缩文献；Skill 经发现、加载、执行按需提供正文，相对全量加载在两个成功重复对照中使初始提示 token 减少 68.7\%，平均总 token 减少 57.4\%。
-\item \textbf{任务状态、成本与运行复盘}: 面对长任务中断后难以续做、调用成本难以核对、失败后难以复盘的问题，持久化会话与任务状态支持 Coding 续做，请求前预留预算、返回后按 usage 结算并保留失败请求的未知成本预留，结合 trace 与离线评测矩阵关联执行过程、成本和效果，使运行可恢复、可对账、可复盘。
-\item \textbf{代码执行与验证闭环}: 面对生成代码可能影响宿主环境、完成状态不能由模型自判的问题，在断网、非 root、限制资源的 Docker 容器中运行代码，源码、数据与 verifier 只读挂载，由外部 verifier 重算指标并反馈失败以驱动修复；工作区锁与原子 checkpoint 保存进度，plan hash 及源码与 harness 指纹校验恢复和完成条件，支持中断后检查现场再续做。
+\item \textbf{Agent Runtime 与多 Agent 编排}: 设计“外层 Harness + 内层 MicroAgent”架构，外层统一预算、ToolPolicy、状态恢复与 Trace，内层隔离 Prompt、Tools 和反思循环；以 LangGraph 编排 planner、compile gate、critic、final review，通过条件边形成“提出--编译--评审--修订”闭环。
+\item \textbf{Agentic RAG 与 MCP}: 以 SQLite/BM25 和 Qdrant/Embedding 多路召回，结合 Fusion、Cross-Encoder 与 MMR 重排；基于官方 MCP SDK 实现 stdio 只读论文服务，Agent 通过 Tool Calling 自主检索、回读原文并反思修订。94 篇论文、12 问上 nDCG@10 由 0.690 提升至 0.749，事实支持率由 75.51\% 提升至 96.15\%（LLM 银标）。
+\item \textbf{Skills 与上下文工程}: 实现 \texttt{search\_skills $\rightarrow$ load\_skill $\rightarrow$ invoke\_skill} 三段式按需加载，结合 L0--L3 文献分层摘要、工具观察截断和原文按需回读；同任务对照中初始 Prompt Token 减少 68.7\%，平均总 Token 减少 57.4\%。
+\item \textbf{Coding Agent 与沙箱闭环}: 将 LangGraph 研究合同交给 Coding Agent，按模块生成代码，在断网、非 root Docker 沙箱中通过只读挂载和外部 verifier 获取反馈并自动修订；联合验收交付 6/6 模块，Docker 检查 10/10、生成单测 6/6，完成自然语言到可执行源码的闭环。
+\item \textbf{分层持久化与故障恢复}: 以 SQLite 存原文、Qdrant 存向量、SQLite Checkpointer 存图状态、JSON 存角色状态；API/网络异常时保留未知费用预留并支持跨进程 Checkpoint 续接，避免重复调用与计费；修复下游费用累加引发的上游工件 Hash 漂移并补充回归覆盖。
 \end{itemize}
 \end{itemize}
 

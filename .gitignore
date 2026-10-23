@@ -160,3 +160,5 @@ Desktop.ini
 # 不使用笼统的 *.json / *.pdf / *.md / *.png / *.svg 忽略规则。
 # Internal research records, execution artifacts and development history.
 /internal_experiments/
+
+/resume.cls
