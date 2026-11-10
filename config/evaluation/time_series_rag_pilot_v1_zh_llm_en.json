@@ -1,0 +1,36 @@
+{
+  "suite_id": "time-series-rag-pilot-v1-zh-llm-en",
+  "label_policy": "English search queries translated by the configured LLM from the frozen Chinese diagnostic suite.",
+  "queries": [
+    {
+      "id": "max_error_streaming_pla_zh",
+      "query": "Streaming piecewise linear approximation with deterministic maximum error guarantees",
+      "relevant_paper_ids": ["rag_0ea411325f42e5c0ee8332df", "rag_42866150135c678447648a4b", "rag_75c3adc4b4519eaae25cc68a"]
+    },
+    {
+      "id": "random_access_learned_compression_zh",
+      "query": "Learned nonlinear time series compression with random access support",
+      "relevant_paper_ids": ["rag_8461b380a0b9730317bf030a"]
+    },
+    {
+      "id": "iotdb_compression_zh",
+      "query": "Compression methods and storage design in Apache IoTDB",
+      "relevant_paper_ids": ["rag_cc54e02f22272bc8318a54a3", "rag_521acf0ad933ca8e1999a4ab"]
+    },
+    {
+      "id": "sax_similarity_index_zh",
+      "query": "Learned SAX representation indexing for time series similarity search",
+      "relevant_paper_ids": ["rag_518352a5eb850c16fbdcacf3"]
+    },
+    {
+      "id": "compressed_approximate_analytics_zh",
+      "query": "Approximate analytics directly on compressed time series with deterministic error bounds",
+      "relevant_paper_ids": ["rag_3433299cf41fc43c33929e5b"]
+    },
+    {
+      "id": "stream_processing_without_decompression_zh",
+      "query": "Adaptive compressed data stream processing without decompression",
+      "relevant_paper_ids": ["rag_69319484ae1ccaa4cc45d1cb"]
+    }
+  ]
+}

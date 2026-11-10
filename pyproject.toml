@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "researchops-mvp"
+name = "researchclaw"
 version = "0.2.0"
 description = "Auditable research agent for idea understanding and literature acquisition"
 readme = "README.md"
@@ -12,7 +12,7 @@ license = {text = "MIT"}
 dependencies = ["certifi>=2024.2.2", "PyYAML>=6.0"]
 
 [project.optional-dependencies]
-web = ["fastapi>=0.115,<1", "uvicorn>=0.30,<1", "PyJWT>=2.9,<3", "httpx>=0.27,<1", "python-dotenv>=1,<2"]
+web = ["fastapi>=0.115,<1", "uvicorn>=0.30,<1", "PyJWT>=2.9,<3", "httpx>=0.27,<1", "python-dotenv>=1,<2", "tiktoken>=0.8,<1"]
 pdf = ["PyMuPDF>=1.24"]
 docling = ["docling>=2.70"]
 retrieval = ["sentence-transformers>=3.0", "torch>=2.2"]
@@ -21,14 +21,16 @@ dev = ["pytest>=8"]
 coding = ["timm==1.0.27", "pytest>=8"]
 agent = [
     "langgraph==1.2.16",
-    "langgraph-checkpoint-sqlite==3.1.2",
+    "langgraph-checkpoint-postgres>=2.0,<4",
+    "psycopg[binary]>=3.2,<4",
     "qdrant-client==1.20.0",
     "mcp==2.3.0",
 ]
 # Compatibility alias for existing local environments and reproduction scripts.
 agent-v03 = [
     "langgraph==1.2.16",
-    "langgraph-checkpoint-sqlite==3.1.2",
+    "langgraph-checkpoint-postgres>=2.0,<4",
+    "psycopg[binary]>=3.2,<4",
     "qdrant-client==1.20.0",
     "mcp==2.3.0",
 ]
@@ -41,14 +43,15 @@ ragas-eval = [
 ]
 
 [project.scripts]
-researchops = "researchops.application.cli:main"
+researchclaw = "researchclaw.application.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src", "backend/src"]
 
 [tool.setuptools.package-data]
-researchops = ["coding/templates/vit_peft/*", "coding/templates/vit_peft/tests/*", "vendor/taleclaw/LICENSE"]
+researchclaw = ["coding/templates/vit_peft/*", "coding/templates/vit_peft/tests/*", "vendor/taleclaw/LICENSE"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src", "backend/src"]
-testpaths = ["tests"]
+testpaths = ["self-revise/backend-revise/tests"]
+addopts = "--import-mode=importlib -p no:cacheprovider"

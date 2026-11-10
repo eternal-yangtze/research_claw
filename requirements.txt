@@ -1,11 +1,17 @@
 # Install from the project root: python -m pip install -r requirements.txt
-# Application capabilities are declared in pyproject.toml; evaluation pins below.
-# Includes CLI, Web, PDF, neural RAG, dataset adapters, Coding and Agent integrations.
+# Single installation entry point for CLI, Web, PDF, neural RAG, datasets, Coding,
+# agent orchestration, and evaluation. Runtime state is PostgreSQL; paper chunks
+# and embeddings are stored in Qdrant.
 -e .[web,pdf,retrieval,datasets,coding,agent]
 
 # Local retrieval version used for the application measurements.
 sentence-transformers==6.2.0
 
-# Optional document OCR/layout support: pip install -e .[docling]
-# Includes the compatible RAGAS / LangChain evaluation stack.
--r requirements-eval.txt
+# Evaluation and research adapters use the same environment.
+ragas==0.4.3
+datasets==5.1.0
+langchain==1.4.7
+langchain-core==1.6.13
+langchain-community==0.3.31
+langchain-openai==1.7.2
+psycopg[binary]>=3.2,<4

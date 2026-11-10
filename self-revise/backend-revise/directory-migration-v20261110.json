@@ -1,0 +1,594 @@
+[
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\self-revise\\agent-evidence",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw\\self-revise\\backend-revise\\agent-evidence"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\self-revise\\cleanup-history",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw\\self-revise\\backend-revise\\cleanup-history"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\self-revise\\cleanup-v20261110",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw\\self-revise\\backend-revise\\cleanup-v20261110"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\self-revise\\environment-evidence",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw\\self-revise\\backend-revise\\environment-evidence"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\self-revise\\frontend-evidence",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw\\self-revise\\frontend-revise/evidence"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\self-revise\\history",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw\\self-revise\\backend-revise\\history"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\self-revise\\memory-evidence",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw\\self-revise\\backend-revise\\memory-evidence"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\self-revise\\preserved-specs",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw\\self-revise\\backend-revise\\preserved-specs"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\self-revise\\question-analysis-v20261110",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw\\self-revise\\backend-revise\\question-analysis-v20261110"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\self-revise\\rag-evidence",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw\\self-revise\\backend-revise\\rag-evidence"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\self-revise\\stage1-evidence",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw\\self-revise\\backend-revise\\stage1-evidence"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\self-revise\\stage23-evidence",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw\\self-revise\\backend-revise\\stage23-evidence"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\self-revise\\RAG性能指标.md",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw\\self-revise\\backend-revise\\RAG性能指标.md"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\self-revise\\readme_rag.md",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw\\self-revise\\backend-revise\\readme_rag.md"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\self-revise\\v20261101开发计划.md",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw\\self-revise\\backend-revise\\v20261101开发计划.md"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\self-revise\\v20261109.md",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw\\self-revise\\backend-revise\\v20261109.md"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\self-revise\\后端测试与性能总报告_v20261110.md",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw\\self-revise\\backend-revise\\后端测试与性能总报告_v20261110.md"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\self-revise\\后端逐题测评附录_v20261110.md",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw\\self-revise\\backend-revise\\后端逐题测评附录_v20261110.md"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\self-revise\\环境.md",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw\\self-revise\\backend-revise\\环境.md"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\self-revise\\证据分类索引_v20261110.md",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw\\self-revise\\backend-revise\\证据分类索引_v20261110.md"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw/README_frontend.md",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw\\self-revise\\frontend-revise/README_frontend.md"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw/tests",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw\\self-revise\\backend-revise/tests"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw/internal_experiments",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw\\self-revise\\backend-revise/internal_experiments"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\archive_backend_evidence.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/archive_backend_evidence.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\audit_alignment_v3.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/audit_alignment_v3.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\audit_final_rag.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/audit_final_rag.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\audit_precoding.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/audit_precoding.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\audit_precoding_v4.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/audit_precoding_v4.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\audit_rag_cpu.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/audit_rag_cpu.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\audit_rag_expanded.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/audit_rag_expanded.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\audit_rag_fusion.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/audit_rag_fusion.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\audit_rag_incremental.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/audit_rag_incremental.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\audit_research_harness.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/audit_research_harness.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\audit_restored_vectors.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/audit_restored_vectors.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\audit_skills.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/audit_skills.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\audit_v03_p8.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/audit_v03_p8.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\audit_v03_ragas.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/audit_v03_ragas.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\benchmark_precoding.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/benchmark_precoding.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\benchmark_rag_cpu.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/benchmark_rag_cpu.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\benchmark_rag_fusion.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/benchmark_rag_fusion.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\benchmark_rag_incremental.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/benchmark_rag_incremental.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\benchmark_rag_planned.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/benchmark_rag_planned.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\benchmark_scratch_coding.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/benchmark_scratch_coding.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\benchmark_skills.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/benchmark_skills.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\check_cpu_index_growth.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/check_cpu_index_growth.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\check_cpu_study.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/check_cpu_study.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\check_fusion_study.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/check_fusion_study.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\check_precoding_responsiveness_v4.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/check_precoding_responsiveness_v4.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\check_storage.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/check_storage.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\cleanup_rag_intermediates.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/cleanup_rag_intermediates.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\clean_test_vectors.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/clean_test_vectors.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\consolidate_self_revise.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/consolidate_self_revise.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\continue_v03_p8.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/continue_v03_p8.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\download_formula_source.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/download_formula_source.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\evaluate_alignment_gold1.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/evaluate_alignment_gold1.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\evaluate_alignment_gold2.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/evaluate_alignment_gold2.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\evaluate_conversation_memory.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/evaluate_conversation_memory.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\evaluate_coordinate_alignment.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/evaluate_coordinate_alignment.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\evaluate_current_agent.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/evaluate_current_agent.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\evaluate_formula_automation.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/evaluate_formula_automation.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\evaluate_formula_pilot.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/evaluate_formula_pilot.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\evaluate_grobid_structure.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/evaluate_grobid_structure.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\evaluate_hybrid_structure.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/evaluate_hybrid_structure.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\evaluate_langgraph_agent.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/evaluate_langgraph_agent.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\evaluate_longmemeval_context.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/evaluate_longmemeval_context.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\evaluate_practical_rag.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/evaluate_practical_rag.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\evaluate_published_practical.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/evaluate_published_practical.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\evaluate_rag_corpus.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/evaluate_rag_corpus.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\evaluate_rag_expanded.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/evaluate_rag_expanded.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\evaluate_research_harness.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/evaluate_research_harness.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\evaluate_single_session_memory.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/evaluate_single_session_memory.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\evaluate_typed_structure.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/evaluate_typed_structure.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\evaluate_v03_completed_split.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/evaluate_v03_completed_split.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\evaluate_v03_p8.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/evaluate_v03_p8.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\evaluate_v03_ragas.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/evaluate_v03_ragas.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\export_v03_ragas_samples.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/export_v03_ragas_samples.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\finish_cleanup_admin.ps1",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/finish_cleanup_admin.ps1"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\inventory_cleanup.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/inventory_cleanup.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\judge_practical_retrieval.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/judge_practical_retrieval.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\migrate_knowledge_qdrant.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/migrate_knowledge_qdrant.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\parse_formula_pdf.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/parse_formula_pdf.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\prepare_alignment_review.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/prepare_alignment_review.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\prepare_cpu_rag.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/prepare_cpu_rag.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\reconcile_restored_knowledge.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/reconcile_restored_knowledge.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\recover_rag_format.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/recover_rag_format.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\recover_v03_p7_case.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/recover_v03_p7_case.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\recover_v03_p8.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/recover_v03_p8.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\refine_formula_regions.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/refine_formula_regions.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\repair_precoding_contracts.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/repair_precoding_contracts.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\repair_rag_judgments.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/repair_rag_judgments.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\report_agent_architecture.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/report_agent_architecture.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\report_backend_questions.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/report_backend_questions.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\report_chat_ui.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/frontend-revise/scripts/report_chat_ui.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\report_final_rag.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/report_final_rag.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\report_memory_context_release.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/report_memory_context_release.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\report_rag_expanded.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/report_rag_expanded.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\report_research_harness.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/report_research_harness.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\report_single_session_memory.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/report_single_session_memory.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\resume_rag_incremental.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/resume_rag_incremental.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\share_rag_controls.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/share_rag_controls.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\summarize_practical_rag.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/summarize_practical_rag.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\summarize_rag_incremental.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/summarize_rag_incremental.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\validate_formulas.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/validate_formulas.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\verify_acquisition_dag.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/verify_acquisition_dag.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\verify_backend_closeout.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/verify_backend_closeout.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\verify_chat_ui.cjs",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/frontend-revise/scripts/verify_chat_ui.cjs"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\verify_chat_ui.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/frontend-revise/scripts/verify_chat_ui.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\verify_coding_project.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/verify_coding_project.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\verify_compact_live.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/verify_compact_live.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\verify_conversation_live.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/verify_conversation_live.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\verify_dataset_sources.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/verify_dataset_sources.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\verify_history_live.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/verify_history_live.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\verify_langgraph_dag_live.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/verify_langgraph_dag_live.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\verify_literature_connectors.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/verify_literature_connectors.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\verify_memory_release.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/verify_memory_release.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\verify_migrated_web.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/verify_migrated_web.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\verify_neural_retrieval.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/verify_neural_retrieval.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\verify_readme_cases_live.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/frontend-revise/scripts/verify_readme_cases_live.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\verify_real_browser.cjs",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/frontend-revise/scripts/verify_real_browser.cjs"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\verify_reference_access.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/verify_reference_access.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\verify_research_chat_live.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/frontend-revise/scripts/verify_research_chat_live.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\verify_research_followup.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/verify_research_followup.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\verify_research_harness_api.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/verify_research_harness_api.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\verify_research_skill_live.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/verify_research_skill_live.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\verify_single_session_live.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/verify_single_session_live.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\verify_skill_composition.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/verify_skill_composition.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\verify_specialized_connectors.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/verify_specialized_connectors.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\verify_stage1.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/verify_stage1.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\verify_v03_corpus.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/verify_v03_corpus.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\verify_v03_p1.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/verify_v03_p1.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\verify_v03_p2_p3.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/verify_v03_p2_p3.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\verify_v03_p4.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/verify_v03_p4.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\verify_v03_p4_live.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/verify_v03_p4_live.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\verify_v03_p5_live.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/verify_v03_p5_live.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\verify_v03_p5_p6.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/verify_v03_p5_p6.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\verify_v03_p8.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/verify_v03_p8.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\verify_v03_p8_persistence.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/verify_v03_p8_persistence.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\verify_v03_paper_live.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/verify_v03_paper_live.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\verify_v03_ragas_resume.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/backend-revise/scripts/verify_v03_ragas_resume.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\verify_web_browser.cjs",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/frontend-revise/scripts/verify_web_browser.cjs"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\verify_web_compact.cjs",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/frontend-revise/scripts/verify_web_compact.cjs"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\verify_web_workbench.py",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw/self-revise/frontend-revise/scripts/verify_web_workbench.py"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\llm_connection_test",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw\\self-revise\\backend-revise/scripts/llm_connection_test"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw\\scripts\\maintenance",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw\\self-revise\\backend-revise/scripts/maintenance"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw/.maintenance",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw\\self-revise\\backend-revise/local-runtime/.maintenance"
+    },
+    {
+        "old":  ".pytest_cache",
+        "error":  "Access to the path \u0027D:\\my_coach\\new_agent\\ResearchClaw\\.pytest_cache\u0027 is denied."
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw/__pycache__",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw\\self-revise\\backend-revise/local-runtime/__pycache__"
+    },
+    {
+        "old":  "D:\\my_coach\\new_agent\\ResearchClaw/researchclaw.egg-info",
+        "new":  "D:\\my_coach\\new_agent\\ResearchClaw\\self-revise\\backend-revise/local-runtime/researchclaw.egg-info"
+    }
+]

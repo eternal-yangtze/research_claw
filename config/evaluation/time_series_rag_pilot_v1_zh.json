@@ -1,0 +1,36 @@
+{
+  "suite_id": "time-series-rag-pilot-v1-zh",
+  "label_policy": "Chinese translations of the frozen English queries; relevant paper IDs are unchanged.",
+  "queries": [
+    {
+      "id": "max_error_streaming_pla_zh",
+      "query": "具有确定性最大误差保证的流式分段线性近似方法",
+      "relevant_paper_ids": ["rag_0ea411325f42e5c0ee8332df", "rag_42866150135c678447648a4b", "rag_75c3adc4b4519eaae25cc68a"]
+    },
+    {
+      "id": "random_access_learned_compression_zh",
+      "query": "支持随机访问的非线性时间序列学习式压缩方法",
+      "relevant_paper_ids": ["rag_8461b380a0b9730317bf030a"]
+    },
+    {
+      "id": "iotdb_compression_zh",
+      "query": "Apache IoTDB中的压缩方法与存储设计",
+      "relevant_paper_ids": ["rag_cc54e02f22272bc8318a54a3", "rag_521acf0ad933ca8e1999a4ab"]
+    },
+    {
+      "id": "sax_similarity_index_zh",
+      "query": "用于时间序列相似性搜索的学习式SAX表示索引",
+      "relevant_paper_ids": ["rag_518352a5eb850c16fbdcacf3"]
+    },
+    {
+      "id": "compressed_approximate_analytics_zh",
+      "query": "直接在压缩时间序列上进行具有确定性误差界的近似分析",
+      "relevant_paper_ids": ["rag_3433299cf41fc43c33929e5b"]
+    },
+    {
+      "id": "stream_processing_without_decompression_zh",
+      "query": "无需解压缩的自适应压缩数据流处理",
+      "relevant_paper_ids": ["rag_69319484ae1ccaa4cc45d1cb"]
+    }
+  ]
+}

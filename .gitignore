@@ -152,6 +152,7 @@ Desktop.ini
 
 # 当前评审文档允许上传；运行文档已改名为 RUNNING.md
 !/README.md
+/README_myself.md
 !/RUNNING.md
 !/docs/PERFORMANCE.md
 
@@ -162,3 +163,29 @@ Desktop.ini
 /internal_experiments/
 
 /resume.cls
+
+# Isolated Web revision checks; preserve artifacts locally, never publish sessions/PDFs.
+/.w27*/
+/.live27*/
+/.browser27/
+/.reuse27/
+/.web_check*/
+/.web_live*/
+
+
+# Curated reports and executable tests remain reviewable. Private/raw evidence
+# stays local: it can contain papers, user conversations and provider payloads.
+/self-revise/backend-revise/*-evidence/
+/self-revise/backend-revise/history/
+/self-revise/backend-revise/internal_experiments/
+/self-revise/backend-revise/local-runtime/
+/self-revise/backend-revise/.t/
+/self-revise/backend-revise/.u/
+/self-revise/backend-revise/.v/
+/self-revise/backend-revise/.w/
+/self-revise/backend-revise/cleanup-history/
+/self-revise/backend-revise/cleanup-v20261110/
+/self-revise/backend-revise/preserved-specs/
+/self-revise/backend-revise/question-analysis-v20261110/
+/self-revise/frontend-revise/evidence/
+/self-revise/frontend-revise/local-runtime/

@@ -1,327 +1,249 @@
-# 简介
+# ResearchClaw：面向个人论文库的科研 Agent
 
-**ResearchOps 是以科研智能体为应用场景的 Agent Runtime。** 它把模型推理、Tool Calling、Skills、Agentic RAG、LangGraph 多角色编排与 MCP 工具服务连接成一条可持续执行的任务链：用户提出研究问题，系统获取和组织证据，形成可追溯的回答或研究方案，并把结构化方案交给 Coding Agent。
+ResearchClaw 是围绕作者日常科研需求开发的论文库 Agent，主要服务于时间序列压缩与误差控制方向。它将论文阅读、知识检索、idea 讨论和实验方案设计放进同一个对话环境，让已经读过的文献成为能够持续积累、检索和核查的研究资料。
 
-项目采用“**外层 Harness + 内层 MicroAgent**”结构。外层负责阶段推进、工具权限、状态恢复和工件交接；内层的论文分析、规划、评审 Agent 各自持有提示词、上下文和工具，在有限循环中查证、修订并提交结果。模型决定局部下一步，宿主决定任务何时进入下一阶段。
+科研讨论往往会随着阅读不断变化。用户可以中途换方向、补论文或重新校准约束，ResearchClaw 会结合当前问题、论文证据和本会话中的研究决定继续讨论。对于尚缺资料的方向，它可以给出检索式、查询公开文献渠道，并在用户确认后将新论文补充进知识库。
 
-| 能力 | 在 Runtime 中的作用 |
-| --- | --- |
-| Tool Calling 与 Skills | 通过 `search_skills → load_skill → invoke_skill` 按需发现和加载能力，调用统一的工具执行器 |
-| RAG 与 Qdrant | 文档解析、结构化分块、Embedding、多路召回、融合重排、MMR 去重及原文引用回读 |
-| LangGraph 与多 Agent | 组织 planner、critic 和独立终审的协作，按结果选择修订或提交，持久化图状态 |
-| MCP client/server | 使用官方 Python SDK，以 stdio 连接只读论文服务，把工具结果送回 Agent 上下文 |
-| 上下文与任务状态 | 角色隔离、论文分层摘要、按需回读、源码历史裁剪与 checkpoint 续接 |
-| Coding Agent | 消费研究合同，按模块生成代码，并根据 Docker 中的执行反馈继续修订 |
-| Eval 与可观测性 | 接入 LangChain/RAGAS，关联输入快照、引用、角色输出、工具事件与任务工件 |
+目前系统基于 **204 份 PDF、约 1.1 万个检索片段**完成验证。200–500 份论文是硕士生日常阅读和课题研究的主要使用范畴，系统围绕这一规模优化增量更新与连续问答，并设置 2000 份论文的容量保护上限。
 
-CLI 面向研究任务与开发者工作流；独立 Web 让用户上传论文或笔记，并围绕这些资料连续提问、获取带来源的回答。两者共享模型接口、工具循环和领域服务，由入口适配器选择能力范围。文档入口：[运行指南](RUNNING.md) · [架构说明](docs/ARCHITECTURE.md) · [配置说明](docs/CONFIGURATION.md) · [应用结果](docs/PERFORMANCE.md) · [扩展指南](docs/EXTENDING.md)。
+## 1. 项目概览
 
-# 流程图
+对于使用者，ResearchClaw 的核心价值是把“找过哪些论文、证据在哪里、研究条件改过什么”连接起来。例如，讨论一种压缩方法时，可以追问它的误差保证；提出一个改进想法时，可以查找相近工作；改成普通笔记本可运行的方案后，也可以继续调整基线和实验指标。
 
-## Runtime 与领域组件
+主要功能包括：
+
+- **论文问答与来源定位**：根据自然语言查询相关文献，解释方法、假设与适用条件，并提供论文、页码和原文片段。
+- **Idea 分析与研究建议**：结合库内工作判断重合点，提出有证据支持的改进方向和需要实验验证的假设。
+- **文献发现与增量入库**：生成学术检索式、查询公开渠道、提出下载建议，接收用户上传的论文并按需更新知识库。
+- **实验方案与基线设计**：围绕研究目标、设备条件和时间预算，讨论基线、数据划分、评价指标及消融方案。
+- **连续对话与研究状态管理**：保留同一会话中的上下文、研究约束和确认笔记，支持会话创建、命名、继续与删除。
+- **工具协作与安全执行**：按需调用检索工具、MCP 和 Skills，通过用户确认控制下载、入库及编码任务交接。
+
+从开发者视角看，系统采用 **LangGraph 单 Agent + 动态任务 DAG**：模型负责理解问题、选择工具和组织回答，运行宿主负责状态管理、权限校验、执行预算与检查点。简单问题直接回答，存在依赖的任务可以按需拆分，并根据后续反馈调整计划。
+
+数据层采用明确的职责划分：**PostgreSQL** 保存消息、会话状态、论文正文、元数据和运行检查点；**Qdrant** 承担论文的向量与关键词候选召回；原始 PDF 保存在文件系统。后端使用 FastAPI 提供统一服务。
+
+## 2. 系统架构与使用流程
+
+### 系统架构
 
 ```mermaid
 flowchart TB
-    subgraph Entry[两条应用入口]
-        CLI[CLI · 研究任务与 Skills]
-        WEB[Web · 上传资料与多轮问答]
-        API[FastAPI · 身份 / 会话 / SSE]
-        WEB --> API
-    end
-
-    subgraph Harness[Agent Runtime / Harness]
-        CTX[Session · 上下文与能力范围]
-        LOOP[ReasoningLoop · 决策 / 行动 / 观察]
-        MODEL[模型接口 · 文本与 Tool Calls]
-        EXEC[ToolExecutor · Schema 与执行授权]
-        SKILL[SkillRuntime · 发现 / 加载 / 调用]
-        CTX --> LOOP
-        LOOP <--> MODEL
-        LOOP --> EXEC
-        EXEC --> SKILL
-    end
-
-    subgraph Research[科研领域能力]
-        INGEST[文献获取 / PDF 解析 / 分层摘要]
-        RAG[Agentic RAG · 查询规划 / 融合 / 重排]
-        PAPER[PaperAnalysisAgent · 查证与分析]
-        GRAPH[LangGraph · planner / critic / 终审]
-        HANDOFF[CLI · 研究合同交接]
-        CODE[Coding Agent · 任务分解 / 生成 / 修订]
-        MCP[MCP client / server · 原文回读]
-        DOCKER[Docker · 代码执行反馈]
-    end
-
-    subgraph State[知识与执行状态]
-        SQL[(SQLite · 原文 / 元数据 / 会话)]
-        Q[(Qdrant · 向量索引 / 范围过滤)]
-        GSQL[(SQLite checkpointer · 图状态)]
-        ART[JSON checkpoint / 研究合同 / Trace]
-        EVAL[LangChain / RAGAS · 应用质量评测]
-    end
-
-    CLI --> CTX
-    API --> CTX
-    SKILL --> INGEST
-    SKILL --> RAG
-    SKILL --> GRAPH
-    EXEC -->|Web 知识工具| RAG
-    INGEST --> SQL
-    INGEST --> PAPER
-    PAPER --> RAG
-    PAPER -->|经本地工具执行器| MCP
-    MCP --> SQL
-    RAG <--> SQL
-    RAG <--> Q
-    GRAPH --> RAG
-    GRAPH -->|提交研究合同| HANDOFF
-    CLI -->|独立实现入口| HANDOFF
-    HANDOFF -->|code --study-result| CODE
-    CODE <--> DOCKER
-    LOOP --> ART
-    PAPER --> ART
-    GRAPH --> GSQL
-    GRAPH --> ART
-    CODE --> ART
-    PAPER -.实际答复与证据.-> EVAL
-    RAG -.检索与引用工件.-> EVAL
+    User[科研用户] --> Entry[科研对话 / 论文上传]
+    Entry --> Agent[LangGraph Agent：理解意图 / 动态规划 / 综合回答]
+    Agent <--> Context[上下文与记忆：对话历史 / 研究状态 / 会话笔记]
+    Agent <--> Tools[工具宿主：权限管理 / 用户确认 / 工具调用]
+    Tools --> Retrieval[查询改写与扩展 → 混合检索 → RRF 融合 → 精排]
+    Retrieval <--> Qdrant[(Qdrant 论文检索库)]
+    Retrieval --> Evidence[原文证据与引用 → 科研回答]
+    Evidence --> Entry
+    Tools --> MCP[MCP Host / Server：论文信息与正文读取]
+    Tools --> Skills[Skills：文献获取 / 证据检索 / 研究规划]
+    Tools --> Channels[公开文献渠道 / Coding Agent 适配器]
+    Entry --> Build[确认入库 → 去重与清洗 → 父子分块 → 增量编码]
+    Build --> Qdrant
+    Build --> PG[(PostgreSQL：论文正文 / 会话 / 运行状态)]
+    Context <--> PG
+    Agent <--> Recovery[检查点与故障恢复：保存进度 / 校验状态 / 复用结果]
+    Recovery <--> PG
 ```
 
-图中的合同交接由 CLI 的 `coding-plan` / `code --study-result` 入口承接。Web 使用项目知识工具集合；科研规划和 Coding 在 CLI 中开展。
-
-## 组件协作泳道
+### 用户使用流程
 
 ```mermaid
 sequenceDiagram
-    actor U as 用户
-    participant E as CLI / Web Adapter
-    participant R as Agent Runtime
-    participant L as 模型
-    participant S as Skills / ToolExecutor
-    participant K as RAG / Qdrant
-    participant P as 论文 Agent / MCP
-    participant G as LangGraph 角色组
-    participant C as Coding Agent
-
-    U->>E: 提交研究目标或项目问题
-    E->>R: 会话上下文 + 当前入口工具集合
-    R->>L: 任务、观察与工具 Schema
-    alt CLI 研究任务
-        L-->>R: search_skills / load_skill / invoke_skill
-        R->>S: 加载 Skill 并执行绑定工具
-        S->>P: 文献获取与论文分析
-        P->>K: 搜索相关段落
-        K-->>P: 候选证据与 chunk_id
-        P->>P: 经 MCP client/server 回读原文并修订分析
-        P-->>S: 带引用的论文工件
-        S-->>R: 结构化结果
-        opt 研究方案任务，已准备语料与数据
-            R->>S: 调用 study-plan Skill
-            S->>G: 研究目标 + 证据 + 数据目录
-            G->>K: 获取方案所需证据
-            G->>G: planner → 编译 → critic → 独立终审
-            G-->>S: 正式研究合同及引用
-            S-->>R: 可交接的研究方案
-        end
-    else Web 项目问答
-        L-->>R: search_knowledge / get_chunk
-        R->>S: 执行当前项目的知识工具
-        S->>K: 检索与原文回读
-        K-->>S: 带来源的证据
-        S-->>R: 工具观察
+    actor User as 科研用户
+    participant Agent as ResearchClaw Agent
+    participant Memory as 会话上下文
+    participant KB as 论文知识库
+    participant Source as 文献渠道
+    User->>Agent: 提问、讨论 idea 或设计实验
+    Agent->>Memory: 读取研究目标与当前约束
+    Agent->>KB: 改写查询，检索并核查原文
+    KB-->>Agent: 相关论文与证据
+    Agent-->>User: 有来源的解释、建议与待验证问题
+    opt 用户补充或修改研究条件
+        User->>Agent: 更换方向、修正误差要求或设备限制
+        Agent->>Memory: 更新当前会话的研究状态
+        Agent-->>User: 调整后的分析与方案
     end
-    R->>L: 回灌工具结果，继续决策或生成答复
-    L-->>R: 回答与引用
-    R-->>E: 输出及运行标识
-    E-->>U: CLI 工件 / Web 会话答复
-    opt CLI 继续实现已提交合同
-        U->>E: code --study-result
-        E->>C: 研究合同与数据引用
-        C->>C: 按模块实现 → Docker 反馈 → 修订
-        C-->>U: 项目源码与执行报告
+    opt 扩充论文库
+        Agent->>Source: 查询候选文献与获取渠道
+        Agent-->>User: 文献建议、检索式或下载提案
+        User->>Agent: 确认下载或上传 PDF，确认入库
+        Agent->>KB: 清洗、分块与增量更新
+        Agent-->>User: 处理进度与新增结果
     end
 ```
 
-# 安装与运行
+## 3. 从科研问题到可核查的回答
 
-以下命令在项目根目录以 PowerShell 执行。CLI 与 Web 可独立使用，也可以共用一个 Python 环境。
+### 理解问题，找到合适的检索方向
 
-| 环境 | 用途 |
-| --- | --- |
-| Python 3.11+，推荐 3.12 | Runtime、CLI、FastAPI、本地 Embedding |
-| 支持 Chat Completions 与 Tool Calling 的模型服务 | Agent 推理与结构化工具调用 |
-| Docker Engine / Docker Desktop，Linux containers | Qdrant 服务和 Coding 执行环境 |
-| Node.js 22 LTS、npm | 本地 Web 前端；Compose 部署由镜像提供 |
-| 本地模型缓存 | SentenceTransformer 与 Cross-Encoder；首次使用时下载，可在 CPU 运行 |
+用户可以直接用自己的表述提问。系统结合研究语境澄清概念，将中文问题转化为适合英文论文的查询，并在需要时补充相关术语或拆解子问题。例如，“压缩后误差能不能保证”可能涉及最大绝对误差、相对误差或平均误差，明确度量后才能找到真正适用的论文。
 
-## 路径一：CLI 研究智能体
+> “我关心的是每个采样点的最大偏差，论文里一般用什么术语描述这种保证？”
 
-安装 [requirements.txt](requirements.txt)，一次安装核心依赖：
+对于还在收敛的选题，Agent 可以从已有知识出发列出可研究的方向，也可以提供 Google Scholar、arXiv 等渠道的检索式，帮助用户继续补充资料。
 
-```powershell
-python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+### 把论文变成有来源的知识
+
+论文入库时先进行内容去重、文本清洗和解析质量分级，再建立用于检索的片段。系统保留论文页码与片段之间的父子关系：较小片段负责准确匹配问题，较大的上下文帮助理解方法和前提；识别到的章节信息用于辅助定位。这样既便于检索一句关键条件，也能回到所在页面继续阅读。
+
+> “这篇 PLA 论文的误差约束是针对原始采样点，还是针对重建后的整条曲线？请给出原文位置。”
+
+新增论文按内容变化处理，已有论文的解析和向量结果可以复用。用户补入几篇新文献时，知识库会围绕新增内容更新，并同步关键词检索所需的统计信息。处理过程提供解析与构建进度，便于了解本次实际新增的内容。
+
+### 兼顾语义与关键词，优先呈现有效证据
+
+科研查询既有语义表达，也有精确术语。向量检索用于发现意思相近的内容，BM25 关键词检索用于匹配算法名、专业词和特定条件。系统通过 RRF 融合两类候选，再用精排判断哪些片段更适合回答当前问题。
+
+> “Gorilla 和 Chimp 分别利用了浮点数据的什么特征？我应该先读哪篇来理解它们的区别？”
+
+对于指定论文的问题，检索会优先围绕目标文献取证，并保留相关背景作为补充。生成回答时关联论文与原文位置，让用户可以继续追问或打开来源核查。
+
+### 从文献证据延伸到 idea 与实验草案
+
+讨论 idea 时，Agent 先查找已有工作中的相似设计，再区分论文已经支持的结论、基于证据的推理和待实验验证的假设。随后可以围绕研究目标提出基线、数据集、指标和消融建议，帮助用户将一个宽泛想法收敛为可执行的研究问题。
+
+> “用局部波动决定分段位置，再统一保证最大绝对误差，这个想法与已有自适应 PLA 方法有哪些重合？”
+
+> “如果只做一个两周内能完成的实验，应该选哪些基线？压缩率之外还需要记录什么？”
+
+文献扩展也可以来自已经读到的参考文献。系统可读取本地论文的参考文献，推荐值得进一步获取的候选工作；获取新论文后，再将它们纳入后续讨论。实验执行通过明确的任务准备和用户确认衔接 Coding Agent。
+
+### 在连续讨论中保留研究约束
+
+系统同时维护最近对话、与当前问题相关的历史片段、显式研究状态和用户确认的笔记。设备、误差指标、基线选择等关键约束可以持续保留；用户更正条件后，后续建议以新的决定为依据。
+
+> “把误差上限改为 0.004，设备条件沿用本会话之前确认的配置。请重新检查实验指标。”
+
+每个会话拥有独立的研究上下文，同项目的论文知识库则持续共享。重新打开原会话可以继续课题讨论，新会话适合开启另一条研究思路。删除会话时同步清理其对应记忆与检查点。
+
+### 按需使用工具，保留可恢复的研究进度
+
+Agent 可以根据问题选择论文检索、原文读取、文献渠道查询或研究规划等能力。MCP 为论文信息与正文读取提供标准工具接口，Skills 封装可复用的研究能力，运行宿主统一校验权限和用户确认。
+
+涉及多个依赖步骤时，Agent 可以建立任务 DAG，并在过程中保存检查点。发生中断后，系统校验当前状态，复用已完成的结果；对于执行效果需要核对的操作，交由用户确认后继续。这让较长的研究任务能够保留进度，也让用户掌握知识库和实验动作的控制权。
+
+## 4. 启动方式
+
+本项目使用 Python 3.12 与本机 `.venv`，Docker 运行 PostgreSQL 和 Qdrant。模型服务及数据库连接通过本地配置提供，配置字段见 [.env.example](.env.example) 和 [.env.web.example](.env.web.example)。首次部署时根据模板准备 `.env`、`.env.web` 与 `infra/.env`；已有安装沿用现有配置。
+
+在项目根目录启动基础设施：
+
+```cmd
+docker compose --env-file infra\.env -f infra\compose.yaml up -d
 ```
 
-依赖按职责声明在 [pyproject.toml](pyproject.toml)，`requirements.txt` 选择应用能力并载入 [requirements-eval.txt](requirements-eval.txt) 的评测兼容组合。主要依赖及用途如下；具体约束以这三个文件为准，`pip` 同时安装传递依赖。
+在独立终端启动后端：
 
-| 依赖 | 提供的能力 |
-| --- | --- |
-| `FastAPI`、`uvicorn`、`PyJWT`、`httpx`、`python-dotenv` | HTTP API、登录令牌、服务请求与环境配置 |
-| `langgraph`、`langgraph-checkpoint-sqlite` | 方案状态图、条件路由、SQLite 持久化与续接 |
-| `mcp` | 官方 Python MCP client/server，stdio 工具发现与调用 |
-| `qdrant-client` | Qdrant 向量写入、范围过滤与检索 |
-| `PyMuPDF` | PDF 解析；Markdown / TXT 由应用直接处理 |
-| `sentence-transformers`、`torch` | Embedding、Cross-Encoder 重排和本地推理 |
-| `torchvision`、`timm`、`Pillow`、`numpy`、`scipy`、`pyarrow` | 图像数据适配、ViT 实现与 Coding 执行支持 |
-| `ragas`、`datasets` | 答复、上下文及参考答案的应用质量度量 |
-| `langchain`、`langchain-core`、`langchain-community`、`langchain-openai` | 宿主模型到 RAGAS 的 ChatModel / wrapper 适配 |
-| `certifi`、`PyYAML` | HTTPS 证书与配置读取 |
-
-SQLite 由 Python 标准库提供。`qdrant-client` 安装在虚拟环境中，Qdrant 服务需要按下文启动；Docker、Node.js 和模型权重分别准备。需要 OCR 与复杂版面解析时，可额外运行 `python -m pip install -e ".[docling]"`。只使用应用能力时也可安装 `python -m pip install -e ".[web,pdf,retrieval,datasets,coding,agent]"`；独立评测环境的安装方式见[评测说明](docs/EVALUATION.md)。
-
-在 `.env` 填写 `RESEARCHOPS_MODEL_BASE_URL`、`RESEARCHOPS_MODEL_API_KEY`、`RESEARCHOPS_MODEL_NAME`。本地知识库可直接使用 `local` 向量后端；启用 Qdrant、论文 MicroAgent 和 MCP 时，按[运行指南](RUNNING.md#cli-启用-qdrant与论文-agent)启动服务并设置对应选项。
-
-先用仓库内的研究简报体验入库与引用检索，再让 Agent 根据任务选择 Skill：
-
-```powershell
-.\.venv\Scripts\python.exe researchops.py --workspace knowledge_base/cli_research ingest docs/examples/research_brief.md
-.\.venv\Scripts\python.exe researchops.py --workspace knowledge_base/cli_research search "LoRA rank 与数据划分"
-.\.venv\Scripts\python.exe researchops.py --workspace knowledge_base/cli_research agent "查找当前知识库中的研究约束，附原文引用，并区分资料事实与拟开展的工作。"
+```cmd
+.venv\Scripts\activate
+python scripts\serve_backend.py
 ```
 
-获取真实论文可使用 `research`；已有语料与数据后通过 `plan-study` 调用 LangGraph，再交接 Coding：
+在另一个终端启动对话入口：
 
-```powershell
-.\.venv\Scripts\python.exe researchops.py --workspace knowledge_base/cli_research research "ViT 少样本分类中的 LoRA 与视觉适配器" --max-queries 2 --limit-per-query 4 --max-downloads 2
-.\.venv\Scripts\python.exe researchops.py skills
-.\.venv\Scripts\python.exe researchops.py plan-study --help
-.\.venv\Scripts\python.exe researchops.py code --help
-```
-
-完整的数据准备、合同交接与恢复命令见[CLI 运行指南](RUNNING.md#路径一cli)。文档中的 `knowledge_base/` 由命令创建，论文与模型请求按实际任务获取。
-
-## 路径二：Web 上传资料与对话问答
-
-Web 是一个**围绕自己的论文和笔记聊天的浏览器界面**：上传资料后，可以让 Agent 查找原文依据、整理观点、比较不同论文的方法，并继续追问。这里的“项目”是资料的分组名，例如填写 `vit-peft`，把同一课题的论文放在一起；提问时，Agent 检索当前项目中的资料。
-
-- **上传资料**：支持 PDF、Markdown 和 TXT，单文件不超过 20 MiB；系统解析、分块并加入当前项目的检索范围。
-- **基于资料提问**：例如“这两篇论文的 LoRA 设置有哪些差异？请附原文依据”，Agent 检索相关段落，必要时回读原文，在回答中给出来源标识和证据片段。
-- **连续追问**：在同一页面会话中接着问“只整理与显存开销有关的内容”，Agent 沿用前文；“新建对话”清空聊天上下文，修改项目名则切换资料范围并开始新对话。
-
-浏览器入口提供资料阅读与问答；研究方案编排和 Coding 源码交付通过并列的 CLI 入口运行。
-
-Web 采用独立 FastAPI 后端和 Vite 前端。使用上面的 Python 环境，在项目根目录准备 Web 配置：
-
-```powershell
-if (-not (Test-Path .env.web)) { Copy-Item .env.web.example .env.web }
+```cmd
 npm.cmd --prefix frontend ci
-```
-
-在 `.env.web` 设置登录密码 `RESEARCHOPS_WEB_PASSWORD` 和至少 32 字节的随机 `RESEARCHOPS_JWT_SECRET`；在 `.env` 设置模型服务。两个终端分别运行：
-
-```powershell
-.\.venv\Scripts\python.exe -m uvicorn researchops_api.main:create_app --factory --app-dir src --host 127.0.0.1 --port 8000
-```
-
-```powershell
 npm.cmd --prefix frontend run dev
 ```
 
-打开 `http://127.0.0.1:5173`，填写用户标识和配置的访问密码。一次完整使用流程是：在“项目”输入框填写 `vit-peft` → 依次上传两篇论文并等待导入完成 → 在“研究问题”中输入比较问题 → 阅读回答中的来源与原文依据 → 继续追问。API 文档为 `http://127.0.0.1:8000/docs`。SSE 发送任务心跳与终态答复，会话历史由服务端保存。
+访问 `http://127.0.0.1:5173`，API 文档位于 `http://127.0.0.1:8011/docs`。首次创建账号时使用本地配置的注册邀请码，并单独设置个人密码。
 
-使用 Docker 部署 Web 时，准备相同的 `.env` 和 `.env.web`，运行：
+## 5. 评估与架构取舍
 
-```powershell
-docker compose --env-file .env.web up -d --build --wait
+评估围绕三个问题展开：论文证据是否容易找到，长对话中的研究信息能否被正确使用，以及 Agent 是否能以合理成本选择工具并完成科研任务。内容评分使用 LLM 银标；下列结果分别对应各自的数据集与评估条件。
+
+### 论文检索与回答质量
+
+在 204 份 PDF 上构建英文文献问题集，检索侧 60 题、生成侧 46 题，分别保留 12 题用于选型后的验证。问题覆盖方法定位、跨篇比较、条件与适用范围、版本区分、结构定位和证据不足场景。
+
+检索消融使用相同问题，比较单独向量检索、单独 BM25、两者的 RRF 融合，以及融合后精排：
+
+| 检索方案：12 题验证集 | Recall@5 | MRR@5 | nDCG@5 | 证据页面命中率@10 |
+|---|---:|---:|---:|---:|
+| 仅向量检索 | 0.8333 | 0.6944 | 0.7132 | 0.5833 |
+| 仅 BM25 关键词检索 | 0.9167 | 0.8472 | 0.8376 | 0.6667 |
+| 向量与 BM25 的 RRF 融合 | 0.9167 | 0.8750 | 0.8552 | 0.5833 |
+| RRF 融合后精排 | 0.9167 | 0.9583 | 0.9167 | 0.8750 |
+
+融合利用了语义与术语的互补性，精排进一步提高了相关证据的排序与页面定位能力。这一设计服务于“先找到论文，再核查具体条件”的阅读方式。检索选型同时观察论文覆盖与证据定位：开发集上，融合后精排的 Recall@5 为 0.8542，单独融合为 0.8750，体现了精确取证与候选覆盖之间的取舍。
+
+生成侧使用 **RAGAS 0.4.3** 评价 12 题验证集。基线直接使用原始问题做向量检索，选取 5 条结果构建页面上下文；当前方案加入查询改写与扩展、向量和关键词融合、精排，以及目标论文约束和命中片段保留。两组使用相同生成模型。
+
+| RAGAS 指标 | 原始问题 + 仅向量检索 | 当前证据检索方案 |
+|---|---:|---:|
+| Faithfulness：回答对证据的忠实度 | 0.9085 | 0.9156 |
+| Answer relevancy：回答相关性 | 0.5724 | 0.7358 |
+| Context precision：上下文精确率 | 0.5889 | 0.6625 |
+| Context recall：上下文召回率 | 0.5417 | 0.7083 |
+
+结果体现为回答更贴近问题、上下文包含更多有效证据。上述变化来自整套证据组织方案；检索表中的单模块消融用于进一步观察融合与精排的作用。验证集采用按问题划分，评分口径为本地文献任务上的银标评估。
+
+### 增量构建效率
+
+以 194 份论文库为基础补入 12 份 PDF，系统识别 2 份内容重复文件，实际新增 10 份，最终扩展至 204 份。
+
+| 项目 | 实测结果 |
+|---|---|
+| 新增 10 份论文的构建耗时 | 约 101.16 秒 |
+| 新增检索片段 | 618 个 |
+| 复用既有向量 | 10,337 条，数值保持一致 |
+| BM25 统计与索引刷新 | 约 4.04 秒 |
+| 无内容变化的构建检查 | 约 0.49 秒，解析、编码与向量写入均为 0 |
+
+增量设计将主要计算集中在新增资料上，适合阅读过程中每次补充几篇论文的使用节奏；无变更检查则便于重复提交时快速确认知识库状态。
+
+### 单会话上下文与记忆
+
+采用公开 **LongMemEval 的全部 156 道单会话 oracle 问题**，覆盖用户事实、助手历史与偏好。oracle 表示已给定目标会话，评估重点是如何从该会话组织上下文并回答问题。
+
+对照方案保留最近完整对话轮次，并从较早的用户消息中，按“记住、约束、预算、目标”等关键词摘取最多 24 条历史信息。当前方案在保留最近轮次的基础上，使用 BM25 按本轮问题召回历史用户消息和助手回答，为助手回答附带前置用户问题，并补充重要约束片段。
+
+| 评估范围 | 最近轮次 + 关键词触发摘录 | 当前问题驱动召回 + 对话锚点 |
+|---|---:|---:|
+| 单会话 oracle，156 题 | 48.1% | 86.5% |
+| 其中此前未参与评估的 132 题 | 49.2% | 87.9% |
+| 20 / 50 / 100 轮派生压力案例，36 个 | 16.7% | 83.3% |
+
+两组使用相同模型、提示和 4096 token 窗口预算。当前方案平均实际输入约 2428 tokens，对照约 1136 tokens，改善包含更充分利用窗口、装入相关历史信息的收益。36 个压力案例由 12 道公开题派生，用于观察长背景对话中的信息保留能力。对于误差阈值、设备条件等科研硬约束，系统进一步通过显式研究状态和确认笔记保存。
+
+### Agent 架构对照
+
+使用 24 个本地科研任务，覆盖论文事实问答、idea 分析、基线设计和文献扩展，在相同配置模型、论文库与领域工具上比较三种实现：基础单 Agent 的 ReAct 工具循环，Planner / Worker / Reviewer 三角色协作，以及当前具备状态校验、动态 DAG 和检查点的 LangGraph 单 Agent。
+
+| 架构 | 银标任务成功率 | 平均耗时 | 平均实际 tokens |
+|---|---:|---:|---:|
+| 基础单 Agent：ReAct 工具循环 | 91.7% | 51.94 秒 | 19,905 |
+| Planner / Worker / Reviewer 三角色 | 79.2% | 103.70 秒 | 43,130 |
+| LangGraph 单 Agent + 动态任务 DAG | 95.8% | 50.45 秒 | 21,133 |
+
+这组课题任务以文献阅读、取证和研究草案为主，单 Agent 可以集中维护问题语境；三角色方案增加了证据转述和审查开销。因此，项目选择单 Agent 作为默认实现，将权限、安全确认和执行校验交给运行宿主。三组按同一任务协议分批运行，结果用于本项目的工程选型。
+
+另以 16 类工具意图、每类 2 种表述评估工具选择，路由正确率为 100%。该指标衡量工具选择能力，科研回答质量由上述独立任务评估衡量。
+
+## 6. 代码组织
+
+```text
+src/researchclaw/             核心实现
+├── harness/                 Agent 运行、上下文、状态与执行治理
+├── knowledge/               论文入库、混合检索与证据问答
+├── papers/                  文献渠道、下载与解析
+├── integrations/            MCP 等工具集成
+└── coding/                  Coding Agent 适配与实验交接
+
+backend/src/researchclaw_api/ API、鉴权、会话与后台任务
+frontend/                    对话入口
+scripts/                     启动、检索与运行维护
+config/                      项目配置
+infra/                       PostgreSQL 与 Qdrant 基础设施
+skills/                      可复用的科研技能
 ```
 
-访问 `http://127.0.0.1:3000`。Compose 提供 Nginx 与 FastAPI，默认采用 PyMuPDF 和轻量本地检索，数据保存到 `web_workspace/`。本地 Python 路径支持神经检索与 Qdrant；配置与部署说明见[Web 运行指南](RUNNING.md#路径二web)。
+## 7. 设计定位与后续方向
 
-# 性能与结果分析
+作为作者的论文库 Agent，ResearchClaw 将持续积累的论文、带来源的问答、研究状态和工具执行连接起来，支持从理解方法、讨论 idea 到准备实验草案的日常科研活动。开发重点是让新资料容易补入、研究决定能够延续、关键结论能够回到原文核查。
 
-结果围绕 Runtime 服务应用的能力展开：检索是否更准确、证据是否能支撑回答、上下文是否更紧凑，以及研究目标是否能交接为结构化方案。下表来自已保存的同条件记录；语义评分采用独立模型调用产生的 **LLM 银标**。
-
-**数据集与运行规模。** 文献检索及证据支撑对照使用自建的 ViT 参数高效微调论文语料，共 **94 篇论文、7,757 段原文、6 个研究主题、12 个问题**；增量维护从 87 篇扩展到 94 篇。Coding 前的交付率来自 **6 个同领域新组合研究任务**，其中 5 个围绕 DTD / Oxford-IIIT Pet，1 个围绕 CIFAR-100 / Flowers-102，度量终点是研究合同与冻结规格交付。
-
-联合 Coding 案例使用 **DTD（47 类，原始清单 5,640 张）与 Oxford-IIIT Pet（37 类，本地准备清单 7,349 张）**作为数据交接基础；实际代码执行采用两者的真实图像小批量、CPU tiny-ViT、32 × 32 输入和 batch size 2，完成第 2 步到第 3 步的续训。合同中的 **36 项计划任务**用于研究配置和调度交接；图像清单大小表示可用数据范围，完整多随机种子训练属于后续研究执行范围。下表的检索与方案指标分别以论文问题集和研究任务集为统计单位。
-
-| 应用能力 | 实测结果 | 统计范围 |
-| --- | --- | --- |
-| 融合检索排序 | nDCG@10 **0.690 → 0.749**；新增论文 Recall@10 **43.75% → 50.69%** | 94 篇语料、12 问，论文去重后按问题宏平均；新增论文子集为 7 篇 |
-| 证据支撑与方案组织 | 全部输出事实获原文充分支持 **75.51% → 96.15%**；方案可用性 **2.42 → 4.00 / 4** | 固定语料同轮匿名评审，对比旧完整链路与 Fusion 完整链路 |
-| 按需加载 Skills | 初始提示 token 减少 **68.7%**，平均总 token 减少 **57.4%** | lazy / eager 两个完成运行重复对照，度量上下文组织收益 |
-| 增量知识库维护 | 旧向量复用 **93.2%**；新增编码相对全量重建约快 **12.7 倍** | 同机扩库：复用 7,227 段、新增 530 段，增量 21.92 秒、全量 278.83 秒 |
-| Coding 前端到端交付 | 同领域 6 个新组合任务交付率 **83.3%（5/6）**；同题修复复验 **100%（6/6）** | 终点为经编译和独立评审的冻结规格；复验使用已暴露题目 |
-| 多组件业务交接 | Qdrant、MCP、LangGraph 与 Coding 在同一任务链形成可关联的论文、方案及源码工件 | 联合案例完成 36-job 方案交接与 6 个代码模块，执行范围为 CPU tiny-ViT |
-
-这些结果分别支持融合检索、证据组织、按需上下文和结构化交付的设计选择。范围、指标定义及数字来源见[应用结果说明](docs/PERFORMANCE.md)；RAGAS 接口与任务分层策略见[评测说明](docs/EVALUATION.md)。
-
-# 工作流讲解
-
-## 1. 入口与上下文装配
-
-一次请求从入口适配器开始。CLI 以当前本地进程权限运行，`--workspace` 确定数据库和工件根目录，`--allow-root` 声明额外可读路径；宿主为本次任务创建 `session_id` 和 `run_id`。Web 在登录时校验共享密码并签发 JWT，以令牌中的用户命名空间、`project_id` 和 `session_id` 定位项目与会话；服务端核对会话归属，从 `web_workspace/web_state.db` 取回历史消息，再创建本次运行。
-
-宿主随后装配模型接口、System Prompt、Session 和 Tool Schema。CLI 的 `agent` / `research` 入口提供 `search_skills → load_skill → invoke_skill`：先发现能力元信息，再加载 Skill 正文及参数 Schema，最后按加载 hash 调用宿主绑定函数。文档入库、证据检索、文献获取和方案规划由不同 Skill 承接。Web 项目问答仅装配 `search_knowledge`、`get_chunk`、`answer_with_evidence`，handler 绑定当前项目。`plan-study` 和 `code` 也支持 CLI 直接进入对应应用服务。
-
-## 2. 模型决策与工具路由
-
-ReasoningLoop 把任务、会话消息、已有工具观察和当前 Agent 可见的工具 Schema 一起发送给模型。模型通过 Tool Calling 返回工具名与 JSON 参数表达行动意图；执行发生在宿主。ToolExecutor 先通过 ToolPolicy 检查工具是否存在、是否属于该 Agent 的允许集合、是否满足工具的角色和确认要求，再检查参数字段与类型，把执行上下文交给注册的 handler。
-
-领域 handler 进一步检查文件路径、项目或论文归属。检索时，RAG 从 SQLite 取词法候选，从 Qdrant 取带范围过滤的 dense 候选，结合多查询融合、Cross-Encoder 重排和 MMR，返回稳定 `chunk_id`、来源与预览。ReasoningLoop 将执行结果以对应 `tool_call_id` 的观察消息交还模型，继续“决策 → 行动 → 观察”，直到生成答复或达到宿主设定的停止条件。工具事件写入工作区的 `runs/<run_id>/trace.jsonl`。
-
-## 3. 局部 Agent 执行
-
-以论文分析为例：文献获取服务完成全文解析和入库、准备好可分析段落后，在启用 `RESEARCHOPS_PAPER_ANALYZER_MODE=micro` 时调用 PaperAnalysisAgent。宿主为它创建独立 System Prompt、论文范围、工具集合和局部上下文；MicroAgentRunner 承接有限轮次的推理与反思。论文 Agent 可调用 `search_paper_chunks` 定位证据、`get_paper_chunk` 回读原文、`validate_paper_analysis` 检查候选分析。
-
-配置 `RESEARCHOPS_PAPER_READ_TRANSPORT=mcp` 后，`get_paper_chunk` 的本地 handler 调用官方 MCP client，由宿主启动绑定当前数据库、论文和允许段落的 stdio server。client 完成 `initialize`、`tools/list` 和 `tools/call`，server 再次核对归属后只读 SQLite，返回原文、页码和来源。结果经 ToolExecutor 回到论文 Agent 的局部消息中；validator 将字段、引用范围、是否实际回读等反馈交给后续轮次，Agent 据此修订，提交带引用的结构化分析。协议记录、分析工件和 JSON checkpoint 保存在对应工作区。
-
-多 Agent 协作以正式工件为边界：论文 Agent 产出分析和引用，planner 消费证据提出方案，critic 与 final_review 在各自上下文中评审候选。宿主负责触发角色和传递工件，每个角色内部拥有自己的工具循环；跨角色的协作顺序由方案图组织。
-
-## 4. LangGraph 状态流转
-
-当用户通过 `study-plan` Skill 或 `plan-study --orchestration langgraph` 提交研究目标，并指定已准备的论文语料和数据目录时，宿主进入方案子图。`retrieve` 先组织证据；`planner` 提出候选；`compile_gate` 由宿主将候选编译为研究合同并检查约束；候选就绪后交给 `critic`，通过后进入独立的 `final_review`。`decide` 汇总反馈，选择回到 planner 修订，或进入 `submit` 保存结果；正式合同随被接受的候选提交。
-
-所有条件边都由宿主代码定义：编译反馈进入 decide，评审反馈驱动修订，接受、终止条件或候选次数上限决定提交时机。Agent 返回结构化判断，宿主据此路由。LangGraph 按 `thread_id` 将节点状态、下一步位置和中间工件引用保存到方案目录的 `graph_checkpoints.sqlite`；角色内部消息另存 JSON checkpoint。恢复同一输入任务时，先定位图进度，再由对应角色续接局部状态。
-
-## 5. 持久化与数据分层
-
-CLI 的根目录由 `--workspace` 指定；Web 的项目根目录是 `web_workspace/users/<user>/projects/<project>/`。数据按职责保存：
-
-| 数据 | 保存位置 | 写入与读取时机 |
-| --- | --- | --- |
-| 原文段落、页码、论文元数据与引用映射 | 工作区的 **SQLite**：`researchops.db` | 入库服务解析、分块时写入；检索和 MCP 原文回读时读取；下载源文件保存在工作区资料目录 |
-| Embedding 向量及项目 / 论文范围 payload | **Qdrant** collection，服务数据位于 Docker volume `researchops-qdrant-data` | 入库或增量索引时写入；dense 召回时查询；SQLite 保留事实原文及本地向量缓存 |
-| 方案图状态与下一节点 | 方案目录中的 **SQLite checkpointer**：`graph_checkpoints.sqlite` | 图执行期间保存；按 `thread_id` 恢复 |
-| 局部 Agent 消息、轮次、候选与停止位置 | **JSON checkpoint**：角色目录下的 `state.json` | MicroAgent 执行中保存，局部续接时读取 |
-| Coding 计划、模块进度与执行反馈 | `coding/<plan_id>/` 下的 JSON checkpoint 和报告 | 源码生成、沙箱执行与修订期间保存 |
-| Web 会话消息与请求状态 | `web_workspace/web_state.db` | 接收请求、执行完成时保存；下次会话和状态查询时读取 |
-| 工具和角色事件 | 各工作区 / 方案目录的 `runs/<run_id>/trace.jsonl` | 执行期间记录，并关联会话、角色与工件 |
-
-Qdrant 是可配置的向量后端，使用上述链路时设置 `RESEARCHOPS_VECTOR_BACKEND=qdrant`；轻量本地使用可选择 `local`。原文事实、向量索引、图进度和局部消息分别管理，checkpoint 与任务输入绑定，使中断后的继续执行有明确位置。
-
-## 6. 最终交付（Coding 链路）
-
-LangGraph 的提交结果落在 `<方案工作区>/studies/<study_id>/`，其中 `result.json` 指向正式方案与 `frozen_spec.json`。用户通过 CLI 的 `coding-plan --study-result <result.json>` 构建实现计划，再用 `code --study-result <result.json>` 启动 Coding Agent。合同适配器读取研究约束、数据引用和任务定义，生成模块依赖与允许输出文件清单。
-
-Coding Agent 根据计划写入源码、调用 Docker 沙箱获取执行反馈，再根据反馈修订。沙箱以断网、只读源码与输入挂载以及独立可写输出目录约束运行；宿主确认当前源码对应的执行结果后记录交付状态。最终源码保存到 `<Coding工作区>/coding/<plan_id>/project/`，计划、JSON checkpoint 和执行报告保存在其上一级任务目录。恢复同一任务使用 `--resume`，沿用已保存的模块进度与工件。
-
-# 关键设计与决策取舍
-
-**科研场景适合确定性骨架与局部自主结合。** 文献获取、证据组织、研究规划和实现交接具有明确依赖；原文解释、方案评审和代码修订需要灵活推理。因此外层保留阶段控制，内层把自主能力放在具体任务节点，多 Agent 通过正式工件协作。
-
-**自建 Runtime 与 LangGraph 分工。** 自建内核统一模型接口、Tool Calling、Skills、权限和 Trace；LangGraph 专注方案子流程的条件路由与持久化编排。这种划分便于复用业务函数，也便于比较图编排与宿主循环的使用边界。
-
-**SQLite 保存事实，Qdrant 提供向量召回。** 原文、元数据和引用位置统一留在 SQLite；Qdrant 承担带范围过滤的向量检索。Embedding revision、内容 hash 和版本化 collection 共同维护索引一致性，知识库扩展时复用已有向量。
-
-**Tool Calling、Skills 和 MCP 各司其职。** Tool Calling 表达模型的行动意图；Skills 提供按需加载的领域操作说明；MCP 提供宿主与工具服务间的发现、调用协议。三者在同一执行链组合，宿主统一管理执行边界与资源开销。
-
-**按任务选择推理深度。** 同条件任务对照为直接生成、有限修订和主动查证提供了选择依据：结构明确的问答采用有限修订，原文解释和方案评审使用局部工具循环。应用保留可配置的论文分析路径，把工具循环部署在具有查证需求的节点；研究投入集中于组件交接与可复用接口，让局部自主服务完整任务。
-
-**用有代表性的运行回答架构问题。** 科研任务需要论文获取、模型评审和代码执行，完整多数据集、多随机种子训练还需要显著计算资源。项目因此以固定语料对照、组件消融、Coding 前端到端交付及 CPU 实现案例构成证据，集中展示检索、上下文与执行协作的价值；更大规模研究作为独立扩展方向。银标评价覆盖方案与证据质量，模型训练收益使用实际训练结果另行衡量。
-
-# 许可证
-
-本项目采用 [MIT License](LICENSE)。包含的第三方代码保留对应许可证，例如 [TaleClaw 许可证](src/researchops/vendor/taleclaw/LICENSE)；模型权重、论文和数据集分别遵循其来源的使用条款。
+项目围绕个人硕士课题的需求确定实现范围：高并发公开服务、跨会话用户画像、覆盖文献全集的自动综述不属于当前需求，也无须为这些场景增加系统复杂度。跨篇比较围绕用户明确提出的问题展开；创新判断以库内证据为起点，研究假设交由后续实验验证。后续优先改进实际阅读中的证据定位、交互效率与研究工具衔接，使系统持续服务于作者的课题推进。

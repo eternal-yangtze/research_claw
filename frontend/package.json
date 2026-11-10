@@ -1,8 +1,19 @@
 {
-  "name": "researchops-frontend",
+  "name": "researchclaw-frontend",
   "version": "0.3.0",
   "private": true,
   "type": "module",
-  "scripts": {"dev": "vite --host 127.0.0.1 --port 5173", "build": "vite build", "preview": "vite preview --host 127.0.0.1"},
-  "devDependencies": {"vite": "6.4.1"}
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 5173 --strictPort",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1"
+  },
+  "devDependencies": {
+    "playwright": "^1.64.1",
+    "vite": "6.4.1"
+  },
+  "dependencies": {
+    "dompurify": "^3.4.17",
+    "marked": "^18.2.0"
+  }
 }

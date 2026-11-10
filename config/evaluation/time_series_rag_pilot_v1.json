@@ -1,0 +1,43 @@
+{
+  "suite_id": "time-series-rag-pilot-v1",
+  "label_policy": "Queries and relevant paper IDs were frozen from paper titles/topics before executing this suite.",
+  "queries": [
+    {
+      "id": "max_error_streaming_pla",
+      "query": "streaming piecewise linear approximation with deterministic maximum error guarantees",
+      "relevant_paper_ids": [
+        "rag_0ea411325f42e5c0ee8332df",
+        "rag_42866150135c678447648a4b",
+        "rag_75c3adc4b4519eaae25cc68a"
+      ]
+    },
+    {
+      "id": "random_access_learned_compression",
+      "query": "learned compression for nonlinear time series supporting random access",
+      "relevant_paper_ids": ["rag_8461b380a0b9730317bf030a"]
+    },
+    {
+      "id": "iotdb_compression",
+      "query": "compression methods and storage design in Apache IoTDB",
+      "relevant_paper_ids": [
+        "rag_cc54e02f22272bc8318a54a3",
+        "rag_521acf0ad933ca8e1999a4ab"
+      ]
+    },
+    {
+      "id": "sax_similarity_index",
+      "query": "learned SAX representation index for time series similarity search",
+      "relevant_paper_ids": ["rag_518352a5eb850c16fbdcacf3"]
+    },
+    {
+      "id": "compressed_approximate_analytics",
+      "query": "approximate analytics directly over compressed time series with deterministic error bounds",
+      "relevant_paper_ids": ["rag_3433299cf41fc43c33929e5b"]
+    },
+    {
+      "id": "stream_processing_without_decompression",
+      "query": "adaptive stream processing over compressed data without decompression",
+      "relevant_paper_ids": ["rag_69319484ae1ccaa4cc45d1cb"]
+    }
+  ]
+}

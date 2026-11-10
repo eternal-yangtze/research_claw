@@ -1,5 +1,5 @@
 {
-  "schema_version": "researchops-v03-p0-regression-v1",
+  "schema_version": "researchclaw-v03-p0-regression-v1",
   "frozen_at": "2026-10-22",
   "purpose": "Development and regression comparison for v0.3; not untouched external generalization.",
   "total_cases": 30,

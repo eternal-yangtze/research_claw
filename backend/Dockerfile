@@ -7,6 +7,7 @@ COPY src/ src/
 COPY backend/src/ backend/src/
 RUN pip install --no-cache-dir -e ".[web,pdf]"
 COPY config/ config/
+COPY researchclaw.py ./
 COPY skills/ skills/
 EXPOSE 8000
-CMD ["uvicorn", "researchops_api.main:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "researchclaw_api.main:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000"]
