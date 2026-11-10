@@ -41,16 +41,16 @@
 % Summary & Objectives
 %======================================================================
 \begin{abstract}
-求职方向：AI Agent、大模型应用开发与 RAG 工程化实习；一周内到岗。哈尔滨工业大学计算机技术硕士在读，预计 2028 年 6 月毕业。独立开发 ResearchOps Agent Runtime，重点解决长任务中的上下文压缩、工具调用链路、任务状态续做、检索证据组织和执行复盘问题；已在其上构建 Coding Agent、RAG 证据检索、Web 多轮问答与离线评测矩阵。
+求职方向：AI Agent、大模型应用开发与 RAG 工程化实习；一周内到岗。哈尔滨工业大学计算机技术硕士在读，预计 2028 年 6 月毕业。独立开发 ResearchClaw 科研 Agent，围绕个人论文库实现增量索引、混合检索、证据问答、单会话记忆与动态任务编排，具备从离线知识构建到在线检索生成、评估驱动优化的完整实践。
 \end{abstract}
 
 %======================================================================
 \sectionTitle{专业技能}{\faWrench}
 %======================================================================
 \begin{itemize}
-\item \textbf{Agent 架构}: Python，Agent Runtime/Harness、MicroAgent、多 Agent、LangGraph、Tool Calling、Skills、MCP、任务规划、Memory/上下文管理、Checkpoint 恢复与 Trace 可观测性。
-\item \textbf{RAG 与 Eval}: 文档解析与分块、BM25/Embedding 多路召回、Qdrant、Cross-Encoder 重排、MMR、引用校验；LangChain、RAGAS、Recall/nDCG 评测。
-\item \textbf{后端与工程}: FastAPI、SQLite、Docker、Linux、Git、pytest；具备沙箱执行、权限边界、状态持久化及故障恢复实践。
+\item \textbf{Agent 与上下文工程}: Python、LangGraph、Agent Runtime/Harness、动态任务 DAG、Tool Calling、MCP、Skills；上下文预算、会话状态、历史召回、Checkpoint 与故障恢复。
+\item \textbf{RAG 与评估}: 文档清洗、Chunking、父子块检索、Embedding、Query 改写与扩展、BM25/向量混合召回、RRF 融合、Cross-Encoder 精排、来源引用；Recall/MRR/nDCG、RAGAS 与消融分析。
+\item \textbf{后端与工程}: FastAPI、PostgreSQL、Qdrant、Docker、Linux、Git、pytest；具备增量索引、身份与会话隔离、权限校验、状态持久化及执行审计实践。
 \item \textbf{开发基础}: Java、Spring Boot 基础；熟悉 REST API 与前后端协作。
 \end{itemize}
 
@@ -79,15 +79,15 @@
 \sectionTitle{项目经历}{\faCode}
 %======================================================================
 \begin{itemize}
-\item \textbf{ResearchOps Agent Runtime（面向科研任务的 Agent 执行平台与 Coding Agent）}
+\item \textbf{ResearchClaw：面向个人论文库的科研 Agent}\hfill 独立开发
 
-\textbf{项目概述}: 独立设计科研 Agent Runtime，以确定性 Harness 管理模型、工具、状态与工件，以 MicroAgent 承载局部自主推理，贯通“文献取证 $\rightarrow$ 方案规划 $\rightarrow$ 代码生成 $\rightarrow$ 沙箱验证”，并提供 CLI 与 Web 资料问答入口。
+\textbf{项目概述}: 面向时间序列压缩与误差控制研究，基于 204 份 PDF、约 1.1 万个检索片段，支持论文问答、idea 分析、文献扩展与基线设计；采用 LangGraph 单 Agent 与动态任务 DAG，随用户追问和研究约束变化调整检索与计划。
 \begin{itemize}
-\item \textbf{Agent Runtime 与多 Agent 编排}: 设计“外层 Harness + 内层 MicroAgent”架构，外层统一预算、ToolPolicy、状态恢复与 Trace，内层隔离 Prompt、Tools 和反思循环；以 LangGraph 编排 planner、compile gate、critic、final review，通过条件边形成“提出--编译--评审--修订”闭环。
-\item \textbf{Agentic RAG 与 MCP}: 以 SQLite/BM25 和 Qdrant/Embedding 多路召回，结合 Fusion、Cross-Encoder 与 MMR 重排；基于官方 MCP SDK 实现 stdio 只读论文服务，Agent 通过 Tool Calling 自主检索、回读原文并反思修订。94 篇论文、12 问上 nDCG@10 由 0.690 提升至 0.749，事实支持率由 75.51\% 提升至 96.15\%（LLM 银标）。
-\item \textbf{Skills 与上下文工程}: 实现 \texttt{search\_skills $\rightarrow$ load\_skill $\rightarrow$ invoke\_skill} 三段式按需加载，结合 L0--L3 文献分层摘要、工具观察截断和原文按需回读；同任务对照中初始 Prompt Token 减少 68.7\%，平均总 Token 减少 57.4\%。
-\item \textbf{Coding Agent 与沙箱闭环}: 将 LangGraph 研究合同交给 Coding Agent，按模块生成代码，在断网、非 root Docker 沙箱中通过只读挂载和外部 verifier 获取反馈并自动修订；联合验收交付 6/6 模块，Docker 检查 10/10、生成单测 6/6，完成自然语言到可执行源码的闭环。
-\item \textbf{分层持久化与故障恢复}: 以 SQLite 存原文、Qdrant 存向量、SQLite Checkpointer 存图状态、JSON 存角色状态；API/网络异常时保留未知费用预留并支持跨进程 Checkpoint 续接，避免重复调用与计费；修复下游费用累加引发的上游工件 Hash 漂移并补充回归覆盖。
+\item \textbf{离线知识构建与增量索引}: 实现 PDF 清洗、质量分级与父子分块，以小块召回、父级上下文补全及章节信息辅助定位；内容哈希去重，复用既有解析与向量。12 份增量输入去重后新增 10 份，构建约 101 秒，复用 10,337 条向量；无变更检查约 0.49 秒。
+\item \textbf{混合检索与评估驱动优化}: 构建 Query 改写/扩展、Qdrant 向量与 BM25 双路召回、RRF 融合及 Cross-Encoder 精排链路，保留页码与原文引用。自建 60 题检索集的 12 题验证集上，MRR@5 相比仅向量检索由 0.6944 提升至 0.9583；生成侧 12 题验证集上，相比原始问题仅向量检索，RAGAS 答案相关性由 0.5724 提升至 0.7358，忠实度为 0.9156（LLM 银标）。
+\item \textbf{Agentic RAG 与动态编排}: 将检索、原文回读与文献渠道查询封装为工具，由 Agent 根据证据调整 Query、补充检索或提出研究建议；支持任务依赖、局部重规划与产物校验。对照单 Agent 与 Planner/Worker/Reviewer 三角色，在本地 24 个科研任务上采用 LangGraph 单 Agent，银标成功率 95.8\%，平均耗时 50.45 秒。
+\item \textbf{单会话记忆与上下文管理}: 结合最近完整轮次、BM25 问题驱动历史召回、对话锚点与显式 Session State，保留研究约束及用户更正。LongMemEval 单会话 oracle 全量 156 题上，相同 4096 token 窗口预算下，相比“最近轮次 + 关键词触发历史摘录”，银标准确率由 48.1\% 提升至 86.5\%。
+\item \textbf{工具治理与持久化恢复}: 基于官方 MCP SDK 实现 stdio 论文只读服务，Skills 按需发现、加载与调用；PostgreSQL 保存正文、会话与检查点，Qdrant 专职论文召回。实现身份/会话隔离、操作二次确认、执行预算与结果复用，对效果不明确的写操作停止自动重放，并保留 Coding Agent 确认交接入口。
 \end{itemize}
 \end{itemize}
 
