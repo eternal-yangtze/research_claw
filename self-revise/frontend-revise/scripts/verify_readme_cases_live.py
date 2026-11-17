@@ -17,7 +17,7 @@ from researchclaw.core.config import load_project_env
 from researchclaw.core.artifacts import file_hash, write_json
 from fastapi.testclient import TestClient
 
-OUT = ROOT / 'self-revise/frontend-revise/evidence/readme-cases-v20261110'
+OUT = ROOT / 'self-revisev0.5/artifacts/readme-cases'
 LABELS = ['研究意图','初学者问答','技术追问','Idea 分析','创新假设分支','证据不足分支',
           '检索式','参考文献扩展','在线检索分支','实验方案','中途重校准','记忆追问','执行安全','MCP / Skills','新会话隔离']
 
@@ -31,13 +31,13 @@ def main():
     OUT.mkdir(parents=True, exist_ok=True)
     path = OUT / 'cases.json'
     old = json.loads(path.read_text(encoding='utf8')) if '--resume' in sys.argv and path.exists() else None
-    result = old or {'workspace': str(ROOT / 'self-revise/frontend-revise/local-runtime' / ('readme-live-' + uuid.uuid4().hex[:8])),
+    result = old or {'workspace': str(ROOT / 'self-revisev0.5/workspace' / ('readme-live-' + uuid.uuid4().hex[:8])),
                      'cases': [], 'kind': 'actual README prompts, real configured model, same session'}
     manifest = ROOT / 'knowledge_base/rag_corpora/time_series_domain_release_v3_1/rag-search-index.json'
     result.setdefault('manifest_before', file_hash(manifest))
     result['status'] = 'running'
     questions = {}
-    for line in (ROOT / 'self-revise/frontend-revise/README_frontend.md').read_text(encoding='utf8').splitlines():
+    for line in (ROOT / 'self-revisev0.5/ResearchClaw0.5开发规划_v20261113.md').read_text(encoding='utf8').splitlines():
         if line.startswith('|'):
             cells = line.split('|')
             if len(cells) > 3 and cells[1] in LABELS:

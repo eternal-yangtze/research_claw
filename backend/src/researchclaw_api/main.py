@@ -36,6 +36,7 @@ class Chat(BaseModel):
     message: str = Field(min_length=1, max_length=100000)
     project_id: str = Field(default='default', pattern=r'^[a-zA-Z0-9_-]{1,64}$')
     session_id: str | None = Field(default=None, pattern=r'^[a-f0-9]{32}$')
+    request_id: str | None = Field(default=None, pattern=r'^[a-zA-Z0-9_-]{8,64}$')
 
 
 class SessionEdit(BaseModel):
@@ -91,19 +92,31 @@ def create_app(*, workspace=None, model_factory=None, password=None, secret=None
     password = password or os.getenv('RESEARCHCLAW_WEB_PASSWORD') or os.getenv('RESEARCHCLAW_MOCK_PASSWORD', '')
     if len(secret.encode()) < 32 or not password:
         raise ValueError('Set RESEARCHCLAW_JWT_SECRET (32+ bytes) and RESEARCHCLAW_WEB_PASSWORD')
-    store = WebStore(workspace or os.getenv('RESEARCHCLAW_WEB_WORKSPACE', 'web_workspace'))
+    redis_url=os.getenv('RESEARCHCLAW_REDIS_URL')
+    store = WebStore(workspace or os.getenv('RESEARCHCLAW_WEB_WORKSPACE', 'web_workspace'),recover_inflight=not bool(redis_url))
     pool = ThreadPoolExecutor(max_workers=2, thread_name_prefix='researchclaw-api')
+    queue=None
+    if redis_url:
+        from .durable import DurableQueue
+        queue=DurableQueue(store,redis_url,workers=int(os.getenv('RESEARCHCLAW_WORKERS','4')),
+            capacity=int(os.getenv('RESEARCHCLAW_QUEUE_CAPACITY','256')),per_owner=int(os.getenv('RESEARCHCLAW_OWNER_CAPACITY','16')),
+            lease_seconds=float(os.getenv('RESEARCHCLAW_LEASE_SECONDS','60')))
+        store.queue=queue
 
     @asynccontextmanager
     async def lifespan(app):
-        yield
-        pool.shutdown(wait=True)
+        if queue:queue.start(execute_queued)
+        try:yield
+        finally:
+            if queue:queue.close()
+            pool.shutdown(wait=True)
 
     app = FastAPI(title='ResearchClaw backend', version='0.3.0', lifespan=lifespan)
     origins = os.getenv('RESEARCHCLAW_FRONTEND_ORIGINS', 'http://127.0.0.1:3000,http://localhost:3000,http://127.0.0.1:5173,http://localhost:5173').split(',')
     app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=True,
                        allow_methods=['GET', 'POST'], allow_headers=['Content-Type', 'Authorization'])
     app.state.store = store
+    app.state.queue = queue
     cancellations = {}
     from .actions import ActionStore
     actions = ActionStore(store)
@@ -145,9 +158,10 @@ def create_app(*, workspace=None, model_factory=None, password=None, secret=None
             preflight()
             with store.connect() as db:
                 db.execute('SELECT 1').fetchone()
-        except RuntimeError as error:
-            raise HTTPException(503, str(error))
-        return {'status': 'ready', 'database': True, 'storage': 'postgresql+qdrant'}
+            if queue:queue.redis.ping()
+        except Exception:
+            raise HTTPException(503, 'A required persistence service is unavailable')
+        return {'status': 'ready', 'database': True, 'storage': 'postgresql+qdrant', 'queue':'redis-streams' if queue else 'local'}
 
     @app.post('/api/v1/auth/login')
     def login(body: Login, response: Response):
@@ -256,6 +270,9 @@ def create_app(*, workspace=None, model_factory=None, password=None, secret=None
             from researchclaw.harness.research_agent import AgentJournal, ResearchAgentRuntime
             from researchclaw.harness.single_agent import research_runtime
             journal=AgentJournal(research.store.database)
+            if queue and getattr(queue.local,'fence',None):
+                from .durable import FencedJournal
+                journal=FencedJournal(journal,queue,queue.local.fence)
             selected_engine=None
             agent_timeout=float(os.getenv('RESEARCHCLAW_WEB_AGENT_TIMEOUT_SECONDS', '600'))
             if resume:
@@ -283,6 +300,15 @@ def create_app(*, workspace=None, model_factory=None, password=None, secret=None
         finally:
             cancellations.pop(run_id,None)
 
+    def execute_queued(run_id,payload,cancel):
+        body=Chat(**payload['body']);owner=payload['owner']
+        row=store.run(run_id,owner);session_id=row['session']
+        history=store.session(session_id,owner,body.project_id)
+        if not history or history[-1]!={'role':'user','content':body.message}:
+            raise ValueError('Queued input no longer matches session history')
+        cancellations[run_id]=cancel
+        execute(body,owner,session_id,run_id,history[:-1],payload.get('resume',False))
+
     @app.post('/api/v1/chat', status_code=202)
     def chat(body: Chat, owner=Depends(current_user)):
         if not body.message.strip():
@@ -297,11 +323,21 @@ def create_app(*, workspace=None, model_factory=None, password=None, secret=None
                 ContextBuilder(window=int(os.getenv('RESEARCHCLAW_CONTEXT_WINDOW','16384'))).build([],body.message)
             except ValueError as error:
                 raise HTTPException(413,str(error))
-            store.create_run(run_id, session_id, owner, body.project_id, bool(body.session_id),body.message)
+            accepted=store.create_run(run_id, session_id, owner, body.project_id, bool(body.session_id),body.message,
+                durable_payload={'body':body.model_dump(),'owner':owner} if queue else None,request_key=body.request_id)
+            if accepted!=run_id:
+                old=store.run(accepted,owner)
+                return {'run_id':accepted,'session_id':old['session'],'status':old['status'],'deduplicated':True}
         except KeyError:
             raise HTTPException(404, 'Unknown session')
-        except ValueError:
-            raise HTTPException(409, 'Session has an active run')
+        except ValueError as error:
+            from .durable import QueueFull
+            raise HTTPException(429 if isinstance(error,QueueFull) else 409,str(error))
+        if queue:
+            # Outbox repair also publishes this committed admission if Redis is down.
+            try:queue.publish(run_id)
+            except Exception:logging.warning('Run admitted to durable outbox; Redis publication deferred')
+            return {'run_id':run_id,'session_id':session_id,'status':'running','dispatch':'queued'}
         cancellations[run_id]=threading.Event()
         pool.submit(execute, body, owner, session_id, run_id, history)
         return {'run_id': run_id, 'session_id': session_id, 'status': 'running'}
@@ -320,6 +356,11 @@ def create_app(*, workspace=None, model_factory=None, password=None, secret=None
         except KeyError:
             raise HTTPException(404,'Unknown run')
         event=cancellations.get(run_id)
+        if queue:
+            if row['status']!='running':raise HTTPException(409,'Run is terminal')
+            queue.cancel(run_id)
+            if event:event.set()
+            return {'run_id':run_id,'status':'cancellation_requested'}
         if not event:
             raise HTTPException(409,'No cancellable conversational run is active')
         event.set()
@@ -359,6 +400,10 @@ def create_app(*, workspace=None, model_factory=None, password=None, secret=None
         except ValueError as error:
             raise HTTPException(409,str(error))
         body=Chat(message=snapshot['user_message'],project_id=project_id,session_id=sid)
+        if queue:
+            try:queue.publish(run_id)
+            except Exception:logging.warning('Recovery admitted; Redis publication deferred')
+            return {'run_id':run_id,'session_id':sid,'status':'recovering'}
         cancellations[run_id]=threading.Event()
         pool.submit(execute,body,owner,sid,run_id,history[:-1],True)
         return {'run_id':run_id,'session_id':sid,'status':'recovering',
@@ -657,10 +702,15 @@ def create_app(*, workspace=None, model_factory=None, password=None, secret=None
         return {'jobs':selected,'model_runs':runs,'note':'展示实际记录；没有新日志只表示等待，不表示有进展。'}
 
     @app.get('/api/v1/runs/{run_id}/events')
-    def events(run_id: str, owner=Depends(current_user)):
+    def events(run_id: str, after: int = 0, owner=Depends(current_user)):
         run(run_id, owner)
         def stream():
+            cursor=max(0,after)
             for _ in range(900):
+                if queue:
+                    for entry in queue.events(run_id,cursor):
+                        cursor=entry['seq']
+                        yield 'id: '+str(cursor)+'\ndata: '+json.dumps(entry,ensure_ascii=False)+'\n\n'
                 value = store.run(run_id, owner)
                 if value['status'] != 'running':
                     yield 'data: ' + json.dumps(value, ensure_ascii=False) + '\n\n'
@@ -669,6 +719,11 @@ def create_app(*, workspace=None, model_factory=None, password=None, secret=None
                 time.sleep(1)
         return StreamingResponse(stream(), media_type='text/event-stream',
                                  headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'})
+
+    @app.get('/api/v1/runs/{run_id}/audit')
+    def run_audit(run_id: str, after: int = 0, owner=Depends(current_user)):
+        run(run_id,owner)
+        return {'events':queue.events(run_id,max(0,after)) if queue else [],'durable':bool(queue)}
 
     @app.post('/api/v1/knowledge/upload', status_code=201)
     async def upload(request: Request, project_id: str = 'default', suffix: str = 'pdf', stage: bool = False, filename: str = '', session_id: str = '', owner=Depends(current_user)):

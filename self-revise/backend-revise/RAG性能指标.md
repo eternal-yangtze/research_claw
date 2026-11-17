@@ -83,4 +83,4 @@ anchored跨篇参考事实覆盖开发约0.54、held-out约0.45，仍不足以�
 
 可以作为本人科研论文库工具使用，适用范围为定位、阅读辅助和有来源的初步问答。不能交付成自动创新性证明、完整综述或生产级多用户服务。RAG实验到此收尾，后续只修真实使用问题。
 
-复核脚本保留`self-revise/backend-revise/scripts/evaluate_rag_expanded.py`、`report_rag_expanded.py`、`audit_rag_expanded.py`及有意义的对照代码。逐题原始答案、评审、冻结集、失败诊断、token审计、采纳决策和哈希清单位于扩展证据目录；旧对照/消融与必要金银标均保留。完整链路见[readme_rag.md](readme_rag.md)，后续见[v20261109.md](v20261109.md)。
+复核脚本保留`self-revise/backend-revise/scripts/evaluate_rag_expanded.py`、`report_rag_expanded.py`、`audit_rag_expanded.py`及有意义的对照代码。逐题原始答案、评审、冻结集、失败诊断、token审计、采纳决策和哈希清单位于扩展证据目录；旧对照/消融与必要金银标均保留。完整链路见[readme_rag.md](readme_rag.md)，后续见[v20261109.md](../../self-revisev0.5/ResearchClaw0.5开发规划_v20261113.md)。

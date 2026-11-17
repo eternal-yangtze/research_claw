@@ -34,6 +34,7 @@ class HarnessLimitError(BudgetAdmissionError):
 
 
 SAFE_TOOLS = (
+    "check_mathematics",
     "search_knowledge", "get_chunk", "answer_with_evidence", "retrieve_evidence",
     "search_papers", "build_search_queries", "get_paper_references", "inspect_paper_library", "mcp_read_chunk", "mcp_paper_metadata",
     "search_skills", "load_skill", "invoke_skill", "request_action",

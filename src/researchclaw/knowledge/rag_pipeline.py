@@ -10,6 +10,7 @@ from dataclasses import dataclass
 import hashlib
 import json
 import math
+import os
 import re
 from pathlib import Path
 from typing import Iterable
@@ -18,12 +19,15 @@ from researchclaw.core.models import Chunk, Paper
 from researchclaw.core.qdrant_store import QdrantResearchStore
 from researchclaw.knowledge.retrieval import SentenceTransformerEmbedding
 from researchclaw.knowledge.vector_backend import QdrantVectorBackend, VectorBackendStatus, _row_hash
+from researchclaw.knowledge.token_safety import POLICY as TOKEN_CHUNK_POLICY, split_children
+from researchclaw.knowledge.paper_layout import POLICY as LAYOUT_CHUNK_POLICY, PARSER as LAYOUT_PARSER, parse_paper, structure_chunks
+from researchclaw.knowledge.paper_layout import PARAGRAPH_POLICY
 
 
-PARSER_FINGERPRINT = "pymupdf-clean-v3"
+PARSER_FINGERPRINT = "pymupdf-clean-v05.2"
 PAGE_CHUNK_POLICY = "page-parent-word-child-v1"
 STRUCTURE_CHUNK_POLICY = "paper-structure-semantic-v2.1"
-SUPPORTED_CHUNK_POLICIES = (PAGE_CHUNK_POLICY, STRUCTURE_CHUNK_POLICY)
+SUPPORTED_CHUNK_POLICIES = (PAGE_CHUNK_POLICY, STRUCTURE_CHUNK_POLICY, TOKEN_CHUNK_POLICY, LAYOUT_CHUNK_POLICY, PARAGRAPH_POLICY)
 CHUNK_POLICY_FINGERPRINT = PAGE_CHUNK_POLICY
 
 _SPACE = re.compile(r"[ \t\f\v]+")
@@ -111,42 +115,50 @@ def _clean_lines(lines: list[str]) -> list[str]:
     values = []
     for raw in lines:
         value = repair_mojibake(_SPACE.sub(" ", raw.replace("\u00ad", "").strip()))
-        if not value or _PAGE_NUMBER.fullmatch(value):
+        if not value:
             continue
         values.append(value)
-    # Preserve evidence but remove repeated page furniture by frequency.
-    frequency: dict[str, int] = {}
-    for value in values:
-        if len(value) <= 140:
-            frequency[value] = frequency.get(value, 0) + 1
-    repeated = {value for value, count in frequency.items() if count >= 3}
-    return [value for value in values if value not in repeated]
+    # Frequency without geometry cannot distinguish furniture from equations.
+    return values
 
 
-def extract_pages(path: Path) -> list[CleanedPage]:
+def extract_pages(path: Path, *, preserve_back_matter: bool = False) -> list[CleanedPage]:
     import fitz
 
     pages: list[CleanedPage] = []
     with fitz.open(path) as document:
-        raw_pages = [[repair_mojibake(_SPACE.sub(" ", value.replace("\u00ad", "").strip()))
-                      for value in (page.get_text("text") or "").splitlines()]
-                     for page in document]
+        raw_pages,edge_pages=[],[]
+        for page in document:
+            lines=[];edges=[]
+            for block in page.get_text('dict')['blocks']:
+                for line in block.get('lines',[]):
+                    value=repair_mojibake(_SPACE.sub(' ',''.join(s['text'] for s in line.get('spans',[])).strip()))
+                    if not value:continue
+                    lines.append(value)
+                    edges.append(line['bbox'][3]<page.rect.height*.055 or line['bbox'][1]>page.rect.height*.945)
+            raw_pages.append(lines);edge_pages.append(edges)
         furniture: dict[str, int] = {}
-        for lines in raw_pages:
-            visible = [value for value in lines if value]
-            for value in [*visible[:2], *visible[-2:]]:
+        for lines,edges in zip(raw_pages,edge_pages):
+            for value in {value for value,edge in zip(lines,edges) if edge}:
                 if len(value) <= 160:
                     furniture[value] = furniture.get(value, 0) + 1
         threshold = max(3, math.ceil(len(raw_pages) * 0.30))
         repeated = {value for value, count in furniture.items() if count >= threshold}
         references_started = False
         for number, raw_lines in enumerate(raw_pages, 1):
-            lines = _clean_lines([value for value in raw_lines if value not in repeated])
-            if references_started:
+            retained=[];removed=[]
+            for value,edge in zip(raw_lines,edge_pages[number-1]):
+                scientific=bool(re.search(r'[=∑∫≤≥<>≠∥∀]|^(?:assumption|theorem|lemma|definition)\b',value,re.I))
+                page_number=edge and value.isdigit() and value==str(number)
+                furniture=edge and value in repeated and not scientific and not value.isdigit()
+                if page_number or furniture:removed.append({'text':value,'reason':'edge_page_number' if page_number else 'repeated_page_edge'})
+                else:retained.append(value)
+            lines = _clean_lines(retained)
+            if references_started and not preserve_back_matter:
                 continue
             reference_index = next((index for index, line in enumerate(lines)
                                     if _REFERENCE_HEADING.fullmatch(line)), None)
-            if reference_index is not None:
+            if reference_index is not None and not preserve_back_matter:
                 lines = lines[:reference_index]
                 references_started = True
             text = "\n".join(lines).strip()
@@ -158,8 +170,9 @@ def extract_pages(path: Path) -> list[CleanedPage]:
                 "replacement_chars": replacement,
                 "ocr_required": chars < 40,
                 "page_quality": "A" if chars >= 200 and replacement == 0 else "B" if chars >= 40 else "C",
+                "deletions":removed,
             }
-            if text:
+            if text or preserve_back_matter:
                 pages.append(CleanedPage(number, text, quality))
     return pages
 
@@ -182,6 +195,11 @@ def quality_grade(pages: list[CleanedPage]) -> tuple[str, dict]:
 
 
 def _title(path: Path, pages: list[CleanedPage]) -> str:
+    from researchclaw.knowledge.paper_identity import identify_pdf
+    return identify_pdf(path)['title']
+
+
+def _legacy_title(path: Path, pages: list[CleanedPage]) -> str:
     try:
         import fitz
         with fitz.open(path) as document:
@@ -371,7 +389,11 @@ def _parent_child_chunks_v2(paper_id: str, pages: list[CleanedPage], grade: str,
 
 
 def _parent_child_chunks(paper_id: str, pages: list[CleanedPage], grade: str, domain: str,
-                         chunk_policy: str = PAGE_CHUNK_POLICY) -> list[Chunk]:
+                         chunk_policy: str = PAGE_CHUNK_POLICY, tokenizer=None) -> list[Chunk]:
+    if chunk_policy == TOKEN_CHUNK_POLICY:
+        if tokenizer is None:
+            raise ValueError('Token-safe chunk policy requires the actual embedding tokenizer')
+        return split_children(_parent_child_chunks_v1(paper_id, pages, grade, domain), tokenizer)
     if chunk_policy == PAGE_CHUNK_POLICY:
         return _parent_child_chunks_v1(paper_id, pages, grade, domain)
     if chunk_policy == STRUCTURE_CHUNK_POLICY:
@@ -387,12 +409,28 @@ def build_corpus(workspace: str | Path, sources: Iterable[tuple[str, Path]], *, 
                  chunk_policy: str = PAGE_CHUNK_POLICY, progress=None) -> BuildResult:
     if chunk_policy not in SUPPORTED_CHUNK_POLICIES:
         raise ValueError(f"Unsupported chunk policy: {chunk_policy}")
+    parser_fingerprint = LAYOUT_PARSER if chunk_policy in (LAYOUT_CHUNK_POLICY, PARAGRAPH_POLICY) else PARSER_FINGERPRINT
     workspace = Path(workspace).resolve()
+    if chunk_policy in (TOKEN_CHUNK_POLICY, LAYOUT_CHUNK_POLICY, PARAGRAPH_POLICY):
+        v05_root = Path(__file__).resolve().parents[3] / 'self-revisev0.5'
+        if not workspace.is_relative_to(v05_root.resolve()):
+            raise ValueError('0.5 token-safe builds require an isolated workspace inside self-revisev0.5')
+        manifest = workspace / 'rag-search-index.json'
+        if manifest.exists():
+            raise ValueError('New token-safe builds require a fresh isolated workspace and corpus release')
     workspace.mkdir(parents=True, exist_ok=True)
     source_rows = [(domain, Path(path).resolve()) for domain, path in sources]
     files = [(domain, path) for domain, path in source_rows if path.is_file() and path.suffix.lower() == ".pdf"]
+    if os.getenv('RESEARCHCLAW_NEURAL_BACKEND')=='local_cpu':
+        from .cpu_models import CPUEmbedding
+        embedding=CPUEmbedding(model_name,model_revision)
+    else:
+        embedding = SentenceTransformerEmbedding(model_name, revision=model_revision)
+    if chunk_policy in (TOKEN_CHUNK_POLICY, LAYOUT_CHUNK_POLICY, PARAGRAPH_POLICY) and not (
+            embedding.device.startswith('cuda') or
+            (os.getenv('RESEARCHCLAW_NEURAL_BACKEND')=='local_cpu' and embedding.device=='cpu')):
+        raise ValueError('Token-safe corpus encoding requires CUDA or the explicit local_cpu entry')
     store = QdrantResearchStore(workspace)
-    embedding = SentenceTransformerEmbedding(model_name, revision=model_revision)
     embedding.batch_size = batch_size
     dense = QdrantVectorBackend(store, embedding, corpus_version=corpus_version)
     seen_hashes: set[str] = set()
@@ -436,7 +474,7 @@ def build_corpus(workspace: str | Path, sources: Iterable[tuple[str, Path]], *, 
             for row in existing_chunks if row.get("node_type") == "child"
         )
         if (existing and existing.get("content_hash") == source_hash
-                and existing.get("parser_version") == PARSER_FINGERPRINT
+                and existing.get("parser_version") == parser_fingerprint
                 and chunk_policy_matches):
             papers_indexed += 1
             papers_reused += 1
@@ -447,10 +485,12 @@ def build_corpus(workspace: str | Path, sources: Iterable[tuple[str, Path]], *, 
                                 "incremental_reuse": True, "source_sha256": source_hash})
             notify('file_done', completed_files=file_index + 1, reused=True)
             continue
-        pages = extract_pages(path)
+        pages = extract_pages(path, preserve_back_matter=chunk_policy in (TOKEN_CHUNK_POLICY, LAYOUT_CHUNK_POLICY, PARAGRAPH_POLICY))
         grade, quality = quality_grade(pages)
         quality_counts[grade] = quality_counts.get(grade, 0) + 1
-        title = _title(path, pages)
+        from researchclaw.knowledge.paper_identity import identify_pdf
+        identity_report=identify_pdf(path)
+        title = identity_report['title']
         if grade == "D":
             report_rows.append({"paper_id": paper_id, "path": str(path), "domain": domain,
                                 "title": title, "quality_grade": grade, "quality": quality,
@@ -458,16 +498,32 @@ def build_corpus(workspace: str | Path, sources: Iterable[tuple[str, Path]], *, 
             notify('file_done', completed_files=file_index + 1, rejected=True)
             continue
         paper = Paper(paper_id=paper_id, title=title, source="rag_staging", file_path=str(path),
-                      content_hash=source_hash, parser_version="pymupdf-clean-v3",
+                      content_hash=source_hash, parser_version=parser_fingerprint,
                       quality_status=grade, identity=None)
-        nodes = _parent_child_chunks(paper_id, pages, grade, domain, chunk_policy)
+        tokenizer = None
+        if chunk_policy in (TOKEN_CHUNK_POLICY, LAYOUT_CHUNK_POLICY, PARAGRAPH_POLICY):
+            from transformers import AutoTokenizer
+            tokenizer = AutoTokenizer.from_pretrained(embedding.model_name, revision=embedding.model_revision,
+                                                      local_files_only=True)
+        if chunk_policy in (LAYOUT_CHUNK_POLICY, PARAGRAPH_POLICY):
+            structure = parse_paper(path, paper_id)
+            structure_path = workspace / 'paper-structure' / (paper_id + '.json')
+            structure_path.parent.mkdir(parents=True, exist_ok=True)
+            structure_path.write_text(json.dumps(structure.to_dict(), ensure_ascii=False), encoding='utf8')
+            nodes = structure_chunks(structure, tokenizer, grade=grade, domain=domain, policy=chunk_policy)
+        else:
+            nodes = _parent_child_chunks(paper_id, pages, grade, domain, chunk_policy, tokenizer=tokenizer)
+        nodes=[Chunk(**{**node.__dict__,'provenance':{**node.provenance,'paper_identity':identity_report}}) for node in nodes]
         # Only Child nodes are indexed; parents remain authoritative context.
         children = [node for node in nodes if node.node_type == "child"]
         child_vectors = []
         for offset in range(0, len(children), batch_size):
             notify('embed', document=path.name, vectors_done=offset, vectors_total=len(children))
-            child_vectors.extend(embedding.encode([f"{node.section}\n{node.text}"
-                for node in children[offset:offset + batch_size]]))
+            batch=children[offset:offset + batch_size]
+            vectors=embedding.encode([f"{node.section}\n{node.text}" for node in batch])
+            from researchclaw.knowledge.embedding_contract import validate_vectors
+            validate_vectors(vectors,expected=len(batch))
+            child_vectors.extend(vectors)
         encoded_children += len(child_vectors)
         children = [Chunk(**{**node.__dict__, "vector": vector, "source_hash": source_hash})
                     for node, vector in zip(children, child_vectors)]
@@ -482,7 +538,8 @@ def build_corpus(workspace: str | Path, sources: Iterable[tuple[str, Path]], *, 
         child_count += len(children)
         report_rows.append({"paper_id": paper_id, "path": str(path), "domain": domain,
                             "title": title, "quality_grade": grade, "quality": quality,
-                            "parents": len(parents), "children": len(children), "source_sha256": source_hash})
+                            "parents": len(parents), "children": len(children), "source_sha256": source_hash,
+                            "identity":identity_report})
         notify('file_done', completed_files=file_index + 1, vectors_done=len(children), vectors_total=len(children))
     notify('dense_sync', completed_files=len(files))
     store.flush_outbox()
@@ -549,7 +606,7 @@ def build_corpus(workspace: str | Path, sources: Iterable[tuple[str, Path]], *, 
               "papers_skipped_duplicate": duplicate, "parents": parent_count, "children": child_count,
               "quality_counts": quality_counts, "embedding_model": embedding.model_name,
               "embedding_revision": embedding.model_revision,
-              "parser_fingerprint": PARSER_FINGERPRINT,
+              "parser_fingerprint": parser_fingerprint,
               "chunk_policy_fingerprint": chunk_policy,
               "structure_stats": {"structured_parents": structured_parents,
                                   "multi_page_parents": multipage_parents,

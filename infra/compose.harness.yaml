@@ -1,0 +1,41 @@
+name: researchclaw-harness
+services:
+  redis:
+    image: redis:7.4.2-alpine
+    restart: unless-stopped
+    command: [redis-server, --appendonly, 'yes', --appendfsync, always, --maxmemory, 256mb, --maxmemory-policy, noeviction]
+    ports: ['127.0.0.1:6379:6379']
+    volumes: [harness_redis:/data]
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 3s
+      timeout: 2s
+      retries: 20
+  backend:
+    profiles: [app]
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile.harness
+    image: researchclaw-harness:v0.5-test
+    restart: unless-stopped
+    depends_on:
+      redis: {condition: service_healthy}
+    env_file: ['${HARNESS_ENV_FILE:-../.env.harness}']
+    environment:
+      RESEARCHCLAW_REDIS_URL: redis://redis:6379/0
+      RESEARCHCLAW_WEB_WORKSPACE: /data/web
+      RESEARCHCLAW_WORKERS: '4'
+    ports: ['127.0.0.1:8000:8000']
+    volumes: [harness_state:/data]
+    extra_hosts: ['host.docker.internal:host-gateway']
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/ready',timeout=5)"]
+      interval: 10s
+      timeout: 6s
+      retries: 12
+    stop_grace_period: 30s
+volumes:
+  harness_redis:
+    name: researchclaw_harness_redis
+  harness_state:
+    name: researchclaw_harness_state

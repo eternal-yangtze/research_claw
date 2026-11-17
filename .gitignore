@@ -2,10 +2,15 @@
 
 # 密钥、私密配置与凭据；仅保留可公开的配置模板
 .env*
+.gpu.env
 !.env.example
 !.env.web.example
+!.env.gpu.example
+!.env.cpu.example
 *.pem
 *.key
+.env.harness
+!.env.harness.example
 credentials*.json
 
 # 开发记录保存在内部目录；同名目录、大小写变体及副本继续排除
@@ -74,6 +79,8 @@ visible_dialogue.json
 
 # Web 持久状态、上传与容器运行数据；不忽略 Docker 配置文件
 /web_workspace/
+/resume_audit/
+/.cpu-runtime/
 /uploads/
 /docker-data/
 /postgres-data/
@@ -163,6 +170,9 @@ Desktop.ini
 /internal_experiments/
 
 /resume.cls
+/jianli.tex
+/self-revisev0.5/
+/self-revise-v0.5/
 
 # Isolated Web revision checks; preserve artifacts locally, never publish sessions/PDFs.
 /.w27*/
@@ -189,3 +199,16 @@ Desktop.ini
 /self-revise/backend-revise/question-analysis-v20261110/
 /self-revise/frontend-revise/evidence/
 /self-revise/frontend-revise/local-runtime/
+
+# GPU connection diagnostics may contain private instance paths.
+/self-revisev0.5/artifacts/
+/self-revisev0.5/workspace/
+/self-revisev0.5/test-runs/
+/self-revisev0.5/model-cache/
+/self-revisev0.5/benchmarks/
+/self-revisev0.5/cache/
+/self-revisev0.5/jobs/
+/self-revisev0.5/local-runtime/
+/self-revisev0.5/baseline/*.local.json
+/self-revisev0.5/baseline/**/*.local.json
+/.h-test-*/

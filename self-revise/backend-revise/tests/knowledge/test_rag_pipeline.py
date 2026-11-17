@@ -14,8 +14,9 @@ def test_cleaning_quality_and_parent_child_are_reproducible():
              "Journal Header", "2", "The guarantee holds for every segment.",
              "Journal Header"]
     cleaned = _clean_lines(lines)
-    assert "Journal Header" not in cleaned
-    assert "1" not in cleaned and "2" not in cleaned
+    # Plain lines have no geometry: repeated text/numbers may be scientific evidence.
+    assert cleaned.count("Journal Header") == 3
+    assert "1" in cleaned and "2" in cleaned
     pages = [CleanedPage(1, " ".join(cleaned), {"text_chars": 220, "replacement_chars": 0,
                                                 "ocr_required": False, "page_quality": "A"})]
     grade, detail = quality_grade(pages)

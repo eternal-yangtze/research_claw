@@ -1,4 +1,5 @@
 import json
+import hashlib
 from contextlib import contextmanager
 from pathlib import Path
 from researchclaw.core.postgres import PostgresDatabase, encode_text
@@ -28,7 +29,7 @@ CREATE TABLE web_jobs (
 
 
 class WebStore(ConversationStore):
-    def __init__(self, root):
+    def __init__(self, root, *, recover_inflight=True):
         self.root = Path(root).resolve()
         self.root.mkdir(parents=True, exist_ok=True)
         self.path = self.root / 'web-runtime-binding.json'
@@ -37,9 +38,11 @@ class WebStore(ConversationStore):
         self.migrate_conversations()
         from researchclaw.core.artifacts import write_json
         write_json(self.path, {'backend': 'postgresql', 'schema': self.database.schema})
+        self.queue = None
         with self.connect() as db:
             # An interrupted model request must never be replayed automatically.
-            db.execute("UPDATE runs SET status='interrupted', error='Backend restarted; inspect artifacts before retrying' WHERE status='running'")
+            if recover_inflight:
+                db.execute("UPDATE runs SET status='interrupted', error='Backend restarted; inspect artifacts before retrying' WHERE status='running'")
 
     @contextmanager
     def connect(self):
@@ -103,8 +106,15 @@ class WebStore(ConversationStore):
         with self.connect() as db:
             db.execute('INSERT INTO upload_names VALUES(?,?,?,?) ON CONFLICT(owner,project,document) DO UPDATE SET name=excluded.name', (owner,project,document,name))
 
-    def create_run(self, identity, session_id, owner, project, existing, current_message=None):
+    def create_run(self, identity, session_id, owner, project, existing, current_message=None, *, durable_payload=None, request_key=None):
         with self.connect() as db:
+            if request_key and self.queue:
+                fingerprint=hashlib.sha256(json.dumps(durable_payload,sort_keys=True).encode()).hexdigest()
+                db.execute('SELECT pg_advisory_xact_lock(hashtext(?))',(owner+':'+request_key,))
+                old=db.execute('SELECT * FROM durable_requests WHERE owner=? AND request_key=?',(owner,request_key)).fetchone()
+                if old:
+                    if old['fingerprint']!=fingerprint:raise ValueError('Idempotency key belongs to different input')
+                    return old['run_id']
             if not existing:
                 db.execute('INSERT INTO sessions (id,owner,project) VALUES (?,?,?)', (session_id, owner, project))
                 db.execute('INSERT INTO session_states(session,payload) VALUES(?,?)',(session_id,json.dumps(empty_state())))
@@ -117,9 +127,20 @@ class WebStore(ConversationStore):
             if current_message is not None:
                 prior=[json.loads(r['payload']) for r in db.execute('SELECT payload FROM conversation_messages WHERE session=? ORDER BY ordinal',(session_id,))]
                 self._sync_messages(db,session_id,prior+[{'role':'user','content':current_message}])
+            if self.queue and durable_payload is not None:
+                self.queue.admit(db,identity,owner,durable_payload)
+                if request_key:db.execute('INSERT INTO durable_requests VALUES(?,?,?,?)',(owner,request_key,fingerprint,identity))
+            return identity
 
     def finish(self, run_id, session_id, messages, answer=None, error=None):
         with self.connect() as db:
+            fence=getattr(self.queue.local,'fence',None) if self.queue else None
+            if fence:
+                import time
+                from .durable import LeaseLost
+                task=db.execute('SELECT * FROM durable_tasks WHERE run_id=? FOR UPDATE',(run_id,)).fetchone()
+                if not task or task['token']!=fence[1] or task['state']!='running' or task['lease_until']<time.time():
+                    raise LeaseLost('Stale worker cannot settle a run')
             row=db.execute("SELECT runs.owner,sessions.project FROM runs JOIN sessions ON sessions.id=runs.session WHERE runs.id=? AND runs.session=? AND runs.status='running' FOR UPDATE OF sessions",(run_id,session_id)).fetchone()
             if row is None:
                 raise ValueError('Run is not active')
@@ -141,6 +162,7 @@ class WebStore(ConversationStore):
             if db.execute("SELECT 1 FROM runs WHERE session=? AND status='running'",(row['session'],)).fetchone():
                 raise ValueError('Session has an active run')
             db.execute("UPDATE runs SET status='running',error=NULL WHERE id=?",(identity,))
+            if self.queue:self.queue.requeue(db,identity)
 
     def run(self, identity, owner):
         with self.connect() as db:

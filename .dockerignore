@@ -8,6 +8,13 @@
 !backend/src/
 !backend/src/**
 !backend/Dockerfile
+!backend/Dockerfile.harness
+!self-revise/
+!self-revise/backend-revise/
+!self-revise/backend-revise/internal_experiments/
+!self-revise/backend-revise/internal_experiments/assets/
+!self-revise/backend-revise/internal_experiments/assets/tokenizers/
+!self-revise/backend-revise/internal_experiments/assets/tokenizers/9b5ad71b2ce5302211f9c61530b329a4922fc6a4
 !config/
 !config/**
 !skills/

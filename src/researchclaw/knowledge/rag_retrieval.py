@@ -33,11 +33,33 @@ class RAGHit:
 class PublishedRAGRetriever:
     def __init__(self, store, *, corpus_version: str, embedding=None, reranker=None,
                  rrf_k: int = 60, parent_word_budget: int = 500,
-                 max_hits_per_paper: int = 1):
+                 max_hits_per_paper: int = 1, release_snapshot=None):
         self.store = store
         self.corpus_version = corpus_version
-        self.embedding = embedding or SentenceTransformerEmbedding()
-        self.reranker = reranker or CrossEncoderReranker()
+        if embedding is None or reranker is None:
+            import os
+            from .neural_models import retrieval_models
+            from .gpu_client import BGE_REVISION
+            defaults=retrieval_models(os.getenv('RESEARCHCLAW_EMBEDDING_MODEL','BAAI/bge-small-en-v1.5'),
+                                      os.getenv('RESEARCHCLAW_EMBEDDING_REVISION',BGE_REVISION))
+            embedding=embedding if embedding is not None else defaults[0]
+            reranker=reranker if reranker is not None else defaults[1]
+        self.embedding = embedding
+        self.reranker = reranker
+        self.release_snapshot = release_snapshot
+        if release_snapshot is not None:
+            from .rag_release import ReleaseError
+            manifest = release_snapshot.manifest
+            if corpus_version != manifest['inventory']['corpus_version']:
+                raise ReleaseError('Retriever corpus differs from pinned release')
+            for prefix, model in (('embedding', embedding), ('reranker', reranker)):
+                if (model.model_name != manifest['models'][prefix + '_model']
+                        or model.model_revision != manifest['models'][prefix + '_revision']):
+                    raise ReleaseError('Retriever model differs from pinned release: ' + prefix)
+                adapter = manifest['models'].get(prefix + '_adapter')
+                if (adapter or {}).get('sha256') != getattr(model, 'adapter_sha256', None):
+                    raise ReleaseError('Loaded model adapter differs from pinned release: ' + prefix)
+            release_snapshot.verify(store)
         self.rrf_k = int(rrf_k)
         self.parent_word_budget = max(100, int(parent_word_budget))
         self.max_hits_per_paper = max(1, int(max_hits_per_paper))
@@ -68,12 +90,15 @@ class PublishedRAGRetriever:
 
     def search(self, query: str, *, limit: int = 6, candidate_limit: int = 40,
                mode: str = 'full', max_hits_per_paper: int | None = None,
-               paper_ids: Sequence[str] | None = None, rerank_windowed: bool = False) -> list[RAGHit]:
+               paper_ids: Sequence[str] | None = None, rerank_windowed: bool = False,
+               independent_units: bool = False, exclude_references: bool = False) -> list[RAGHit]:
         if mode not in {'dense', 'bm25', 'rrf', 'full', 'balanced'}:
             raise ValueError('Unknown retrieval mode')
         query = query.strip()
         if not query:
             raise ValueError("query must not be empty")
+        if self.release_snapshot is not None:
+            self.release_snapshot.verify(self.store)
         state = self._state()
         query_vector = self.embedding.encode([query])[0]
         response = self.store.client.query_points(
@@ -105,6 +130,8 @@ class PublishedRAGRetriever:
                  for value in ids}
         ordered = [value for value, _ in sorted(fused.items(), key=lambda item: (-item[1], item[0]))[:candidate_limit]]
         if not ordered:
+            if self.release_snapshot is not None:
+                self.release_snapshot.verify(self.store)
             return []
         with self.store.database.connect(read_only=True) as db:
             placeholders = ",".join("?" for _ in ordered)
@@ -116,6 +143,9 @@ class PublishedRAGRetriever:
                 f"SELECT * FROM chunks WHERE chunk_id IN ({','.join('?' for _ in {r['parent_chunk_id'] for r in rows})})",
                 tuple({r["parent_chunk_id"] for r in rows}))} if rows else {}
         candidates = [value for value in ordered if value in by_id]
+        if exclude_references:
+            candidates=[value for value in candidates if json.loads(by_id[value].get('provenance_json') or '{}')
+                        .get('structure',{}).get('region')!='references']
         documents = [f"{by_id[value]['section']}\n{by_id[value]['text']}" for value in candidates]
         if mode == 'balanced':
             documents = [f"{by_id[value]['paper_title']}\n{text}" for value, text in zip(candidates, documents)]
@@ -135,10 +165,12 @@ class PublishedRAGRetriever:
             row = by_id[chunk_id]
             parent_id = row["parent_chunk_id"]
             paper_id = row["paper_id"]
-            if (parent_id in used_parents
+            provenance = json.loads(row.get("provenance_json") or "{}")
+            unit=(paper_id,provenance.get('structure',{}).get('node_id') or parent_id) if independent_units else parent_id
+            if (unit in used_parents
                     or paper_counts.get(paper_id, 0) >= (max_hits_per_paper or self.max_hits_per_paper)):
                 continue
-            used_parents.add(parent_id)
+            used_parents.add(unit)
             paper_counts[paper_id] = paper_counts.get(paper_id, 0) + 1
             provenance = json.loads(row.get("provenance_json") or "{}")
             parent = parents.get(parent_id, {})
@@ -149,4 +181,6 @@ class PublishedRAGRetriever:
                                provenance.get("quality_grade", "unknown")))
             if len(hits) >= limit:
                 break
+        if self.release_snapshot is not None:
+            self.release_snapshot.verify(self.store)
         return hits

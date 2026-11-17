@@ -90,11 +90,12 @@ def build_parser() -> argparse.ArgumentParser:
     rag_build.add_argument("--report")
     rag_search = subparsers.add_parser("rag-search", help="Query a published RAG corpus with dense+BM25 RRF and reranking")
     rag_search.add_argument("query")
-    rag_search.add_argument("--corpus-version", default="rag-v1")
-    rag_search.add_argument("--embedding-model", default="BAAI/bge-small-en-v1.5")
-    rag_search.add_argument("--embedding-revision", default="main")
-    rag_search.add_argument("--reranker-model", default="cross-encoder/ms-marco-MiniLM-L6-v2")
-    rag_search.add_argument("--reranker-revision", default="233902d25c440f23af6f7d6e94d2946bac0bee0a")
+    rag_search.add_argument("--corpus-version", help="Defaults to the published workspace release")
+    rag_search.add_argument("--embedding-model", help="Must match the published embedding model")
+    rag_search.add_argument("--embedding-revision", help="Must match the published fixed revision")
+    rag_search.add_argument("--reranker-model", choices=['Qwen/Qwen3-Reranker-0.6B','cross-encoder/ms-marco-MiniLM-L6-v2'],
+                            help="Default: configured GPU Qwen; MiniLM is explicit CUDA rollback")
+    rag_search.add_argument("--reranker-revision", help="Optional validation of the pinned GPU model revision")
     rag_search.add_argument("--limit", type=int, default=6)
     rag_search.add_argument("--candidate-limit", type=int, default=40)
     rag_search.add_argument("--query-language-mode", choices=("auto", "off"), default="auto",
@@ -298,29 +299,35 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == 'rag-answer':
             from researchclaw.core.qdrant_store import QdrantResearchStore
             from researchclaw.knowledge.rag_retrieval import PublishedRAGRetriever
-            from researchclaw.knowledge.retrieval import SentenceTransformerEmbedding, CrossEncoderReranker
+            from researchclaw.knowledge.neural_models import retrieval_models
             from researchclaw.knowledge.research_rag import ResearchRAG
             manifest = json.loads((Path(args.workspace) / 'rag-search-index.json').read_text(encoding='utf8'))
             model, revision = manifest['embedding_key'].split('@', 1)
+            embedding,reranker=retrieval_models(model,revision)
             retriever = PublishedRAGRetriever(QdrantResearchStore(args.workspace),
-                corpus_version=manifest['corpus_version'], embedding=SentenceTransformerEmbedding(model, revision=revision),
-                reranker=CrossEncoderReranker('cross-encoder/ms-marco-MiniLM-L6-v2', revision='233902d25c440f23af6f7d6e94d2946bac0bee0a'))
+                corpus_version=manifest['corpus_version'],embedding=embedding,reranker=reranker)
             output = ResearchRAG(retriever).answer(args.question)
         elif args.command == "rag-search":
             from researchclaw.core.qdrant_store import QdrantResearchStore
             from researchclaw.knowledge.rag_retrieval import PublishedRAGRetriever
-            from researchclaw.knowledge.retrieval import SentenceTransformerEmbedding
-            from researchclaw.knowledge.retrieval import CrossEncoderReranker
+            from researchclaw.knowledge.neural_models import retrieval_models
             store = QdrantResearchStore(args.workspace)
-            embedding = SentenceTransformerEmbedding(args.embedding_model, revision=args.embedding_revision)
-            reranker = CrossEncoderReranker(args.reranker_model, revision=args.reranker_revision)
-            retriever = PublishedRAGRetriever(store, corpus_version=args.corpus_version,
+            manifest=json.loads((Path(args.workspace)/'rag-search-index.json').read_text(encoding='utf8'))
+            model,revision=manifest['embedding_key'].split('@',1)
+            if (args.embedding_model and args.embedding_model!=model) or (args.embedding_revision and args.embedding_revision!=revision):
+                raise ValueError('Embedding overrides must match the published release; rebuild explicitly to change models')
+            family=({'Qwen/Qwen3-Reranker-0.6B':'qwen','cross-encoder/ms-marco-MiniLM-L6-v2':'minilm'}.get(args.reranker_model))
+            embedding,reranker = retrieval_models(model,revision,reranker_family=family)
+            if args.reranker_revision and args.reranker_revision!=reranker.model_revision:
+                raise ValueError('Reranker revision must match the deployed pinned model')
+            version=args.corpus_version or manifest['corpus_version']
+            retriever = PublishedRAGRetriever(store, corpus_version=version,
                                               embedding=embedding, reranker=reranker)
             retrieval_query, translation_status = _normalize_rag_query(
                 args.query, args.query_language_mode)
             output = {"query": args.query, "retrieval_query": retrieval_query,
                       "query_translation": translation_status,
-                      "corpus_version": args.corpus_version,
+                      "corpus_version": version,
                       "hits": [hit.to_dict() for hit in retriever.search(
                           retrieval_query, limit=args.limit,
                           candidate_limit=args.candidate_limit)]}

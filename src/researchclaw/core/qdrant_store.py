@@ -29,6 +29,20 @@ COPY_TABLES = ('tasks', 'papers', 'chunks', 'chunk_embeddings', 'claims', 'evide
 _STORES, _GUARD = {}, threading.RLock()
 
 
+def ensure_collection(client, collection, *, bound=False):
+    """Allow concurrent first-open across API processes without masking errors."""
+    from qdrant_client.http.exceptions import UnexpectedResponse
+    if client.collection_exists(collection):
+        return
+    if bound:
+        raise RuntimeError('Bound Qdrant collection missing; restore historical backup first: ' + collection)
+    try:
+        client.create_collection(collection, vectors_config={})
+    except UnexpectedResponse as error:
+        if error.status_code != 409 or not client.collection_exists(collection):
+            raise
+
+
 def record_id(table, row, keys):
     return str(uuid.uuid5(uuid.NAMESPACE_URL, json.dumps([table, [row[k] for k in keys]], ensure_ascii=False)))
 
@@ -66,10 +80,7 @@ class QdrantResearchStore(ResearchStore):
         self.path = self.root / 'runtime-binding.json'
         self.client = client or QdrantClient(url=os.getenv('RESEARCHCLAW_QDRANT_URL', 'http://127.0.0.1:6333'), timeout=30)
         # Fail before migrations if a bound historical corpus has not been restored.
-        if not self.client.collection_exists(self.collection):
-            if manifest:
-                raise RuntimeError('Bound Qdrant collection missing; restore historical backup first: ' + self.collection)
-            self.client.create_collection(self.collection, vectors_config={})
+        ensure_collection(self.client, self.collection, bound=bool(manifest))
         self.root.mkdir(parents=True, exist_ok=True)
         self.database.migrate('001-research', SCHEMA)
         self.database.migrate('002-knowledge-outbox', OUTBOX_SCHEMA)

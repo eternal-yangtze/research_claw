@@ -10,7 +10,7 @@
 
 ## 2. 整体架构与软件基础
 
-在原ResearchClaw上改造，使用项目唯一`.venv`、Python 3.12和CPU本地模型；FastAPI后端与Vite前端在宿主机运行。Docker只运行约定的PostgreSQL与Qdrant基础设施，详见[环境约束](环境.md)。没有为RAG再建项目或新增常驻GROBID服务。
+在原ResearchClaw上改造，使用项目唯一`.venv`、Python 3.12和CPU本地模型；FastAPI后端与Vite前端在宿主机运行。Docker只运行约定的PostgreSQL与Qdrant基础设施，详见[环境约束](../../self-revisev0.5/环境约定.md)。没有为RAG再建项目或新增常驻GROBID服务。
 
 |位置|职责|
 |---|---|
@@ -123,4 +123,4 @@ python -X utf8 -B scripts/research_rag.py ingest --source "D:\新论文目录" -
 python -X utf8 -B scripts/research_rag.py noop
 ```
 
-使用既有环境配置，不把密钥写入报告。问答应能返回可定位的来源及证据不足提示；重复无变更构建应显示零解析/编码/向量写入。不要把示例目录当作已经创建或存在的论文路径。下一步工作统一见[v20261109](v20261109.md)。
+使用既有环境配置，不把密钥写入报告。问答应能返回可定位的来源及证据不足提示；重复无变更构建应显示零解析/编码/向量写入。不要把示例目录当作已经创建或存在的论文路径。下一步工作统一见[v20261109](../../self-revisev0.5/ResearchClaw0.5开发规划_v20261113.md)。

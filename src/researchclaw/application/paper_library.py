@@ -85,7 +85,7 @@ class PaperLibrary:
             if not re.fullmatch(r'[a-zA-Z0-9_-]{1,160}', paper_id):
                 raise ValueError('Invalid paper ID')
         from researchclaw.knowledge.rag_retrieval import PublishedRAGRetriever
-        from researchclaw.knowledge.retrieval import SentenceTransformerEmbedding,CrossEncoderReranker
+        from researchclaw.knowledge.neural_models import retrieval_models,configuration_key
         from researchclaw.knowledge.research_rag import ResearchRAG
         hits=[]
         for store in self.stores:
@@ -95,12 +95,11 @@ class PaperLibrary:
             if paper_id and not store.get_paper(paper_id):
                 continue
             info=json.loads(manifest.read_text(encoding='utf8'))
-            key=info['embedding_key']
+            key=(info['embedding_key'],configuration_key())
             with _LOCK:
                 if key not in _MODELS:
-                    name,revision=key.split('@',1)
-                    _MODELS[key]=(SentenceTransformerEmbedding(name,revision=revision),
-                        CrossEncoderReranker('cross-encoder/ms-marco-MiniLM-L6-v2',revision='233902d25c440f23af6f7d6e94d2946bac0bee0a'))
+                    name,revision=info['embedding_key'].split('@',1)
+                    _MODELS[key]=retrieval_models(name,revision)
                 embedding,reranker=_MODELS[key]
             retriever=PublishedRAGRetriever(store,corpus_version=info['corpus_version'],embedding=embedding,reranker=reranker)
             # The Worker performs semantic rewriting/expansion; this primitive is
@@ -112,9 +111,17 @@ class PaperLibrary:
                 rag.retrieve(plan,limit=limit,policy='anchored'))
             if getattr(retriever,'lexical_backend','')!='qdrant_bm25':
                 raise RuntimeError('Publish Qdrant BM25 before chat; PostgreSQL recall fallback is disabled')
-            for row in rag.contexts(selected,preserve_child=True):
-                text=row['parent_text']
+            contexts=rag.contexts(selected,preserve_child=True,question=query)
+            from researchclaw.knowledge.evidence_projection import project_evidence
+            projection=project_evidence(query,contexts)
+            for row,evidence in zip(contexts,projection['evidence']):
+                text=evidence['text']
+                if evidence.get('parent_context'):text+='\n\n'+evidence['parent_context']['text']
+                if evidence.get('structure_context'):text+='\n\n'+evidence['structure_context']
                 row={k:v for k,v in row.items() if k not in {'parent_text','child_text'}}
+                # Full audit packets remain application-side, not tool/model input.
+                row.pop('layout_packet',None);row.pop('parent_source_spans',None)
+                if 'math_evidence' in row:row['math_evidence']=evidence.get('math_evidence')
                 hits.append({**row,'text':text,'retrieval':'qdrant_dense+qdrant_bm25+rrf60+rerank+anchored',
                     'corpus_version':info['corpus_version']})
         # The project overlay must not hide a stronger match in the shared library.

@@ -26,6 +26,29 @@ def build_agent_tools(app, *, request_action=None):
     from researchclaw.application.workflow import RESEARCH_LEAD
     from researchclaw.application.paper_library import PaperLibrary
     library=PaperLibrary(app)
+    import os
+    if os.getenv('RESEARCHCLAW_MATH_TOOLS', '0') == '1':
+        from researchclaw.knowledge.math_tools import MathSandbox
+        def math_check(request):
+            from researchclaw.knowledge.evaluation_runs import freeze_json
+            from researchclaw.knowledge.math_tools import ARTIFACTS
+            result = MathSandbox().execute(request)
+            freeze_json(ARTIFACTS / 'sessions' / uuid.uuid4().hex / 'tool.json',
+                        {'request':request, 'result':result})
+            return result
+        registry.register(ToolSpec('check_mathematics',
+            'Small isolated SymPy/Python computation only, not experiments. Preserve source IDs and assumptions in your reasoning. '
+            'Operations simplify/differentiate/solve/evaluate use expression, optional variable and symbol assumptions. '
+            'Operation python uses code (SymPy available as sp), assign result or print. No host files/network/packages. '
+            'Successful output checks the submitted computation only; finite tests are not proofs. '
+            'Distinguish paper statements, conditional derivations, symbolic checks, numerical observations and unverified claims.',
+            {'type':'object','properties':{'request':{'type':'object','properties':{
+                'operation':{'type':'string','enum':['simplify','differentiate','solve','evaluate','python']},
+                'expression':{'type':'string','maxLength':8000}, 'variable':{'type':'string'},
+                'assumptions':{'type':'object'}, 'code':{'type':'string','maxLength':8000}},
+                'required':['operation'],'additionalProperties':False}},'required':['request'],'additionalProperties':False},
+            math_check, allowed_agents=frozenset({WORKER}), timeout_seconds=60,
+            idempotent=False, max_output_chars=12000))
     def chat_search(query, run_id, limit_per_source=3, sources=None):
         result=app.literature.search(query,run_id,limit_per_source,
             sources=sources or ['arxiv','openalex','crossref'])

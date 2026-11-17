@@ -87,7 +87,12 @@ class SentenceTransformerEmbedding:
             "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
         )
         self.model_revision = revision or os.getenv("RESEARCHCLAW_EMBEDDING_REVISION", "main")
-        self.device = device or os.getenv("RESEARCHCLAW_EMBEDDING_DEVICE", "cpu")
+        self.device = device or 'cuda'
+        self._remote = None
+        if device is None and os.getenv('RESEARCHCLAW_NEURAL_BACKEND','gpu_ssh')=='gpu_ssh':
+            from .gpu_client import RemoteEmbedding
+            self._remote=RemoteEmbedding(self.model_name,revision=self.model_revision)
+            self.device='cuda:remote'
         self.batch_size = max(1, int(os.getenv("RESEARCHCLAW_EMBEDDING_BATCH_SIZE", "32")))
         self._model = None
         self._lock = threading.Lock()
@@ -95,6 +100,10 @@ class SentenceTransformerEmbedding:
     def encode(self, texts: Sequence[str]) -> list[tuple[float, ...]]:
         if not texts:
             return []
+        if self._remote is not None:
+            return self._remote.encode(texts)
+        if not self.device.startswith('cuda'):
+            raise RuntimeError('Neural embedding requires CUDA; CPU fallback disabled')
         with self._lock:
             if self._model is None:
                 try:
@@ -121,6 +130,10 @@ class SentenceTransformerEmbedding:
                     device=self.device,
                     local_files_only=local_only,
                 )
+            maximum=int(self._model.max_seq_length)
+            for text in texts:
+                if len(self._model.tokenizer.encode(text,add_special_tokens=True,truncation=False))>maximum:
+                    raise ValueError('Embedding input exceeds actual model limit; silent truncation disabled')
             vectors = self._model.encode(
                 list(texts),
                 batch_size=self.batch_size,
@@ -140,7 +153,7 @@ class CrossEncoderReranker:
             "RESEARCHCLAW_RERANKER_MODEL",
             "cross-encoder/mmarco-mMiniLMv2-L12-H384-v1",
         )
-        self.device = device or os.getenv("RESEARCHCLAW_RERANKER_DEVICE", "cpu")
+        self.device = device or 'cuda'
         self.model_revision = revision or os.getenv("RESEARCHCLAW_RERANKER_REVISION", "main")
         self.batch_size = max(1, int(os.getenv("RESEARCHCLAW_RERANKER_BATCH_SIZE", "16")))
         self._model = None
@@ -151,6 +164,8 @@ class CrossEncoderReranker:
             return []
         with self._lock:
             if self._model is None:
+                if not self.device.startswith('cuda'):
+                    raise RuntimeError('Neural reranking requires CUDA; CPU fallback disabled')
                 try:
                     from sentence_transformers import CrossEncoder
                 except ImportError as error:
